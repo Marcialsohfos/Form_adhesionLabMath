@@ -1,0 +1,832 @@
+<!-- membership.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab_Math | Adhésion au Laboratoire</title>
+    <meta name="description" content="Formulaire d'adhésion au Laboratoire de Mathématiques Appliquées">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Styles supplémentaires pour le formulaire */
+        .membership-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+
+        .form-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(184, 41, 255, 0.2);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-section h3 i {
+            font-size: 1.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--light);
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+
+        .form-group label i {
+            color: var(--primary);
+            width: 20px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--light);
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .form-control.error {
+            border-color: #ff2a6d;
+            box-shadow: 0 0 10px rgba(255, 42, 109, 0.3);
+        }
+
+        .error-message {
+            color: #ff2a6d;
+            font-size: 0.8rem;
+            margin-top: 0.3rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Charte section */
+        .charte-container {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(184, 41, 255, 0.05));
+            border: 2px solid rgba(184, 41, 255, 0.3);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            max-height: 300px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .charte-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .charte-container::-webkit-scrollbar-track {
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .charte-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
+        }
+
+        .charte-content {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            line-height: 1.6;
+            padding-right: 1rem;
+        }
+
+        .charte-content h4 {
+            color: var(--primary);
+            margin: 1.5rem 0 0.5rem;
+        }
+
+        .charte-content h4:first-child {
+            margin-top: 0;
+        }
+
+        .charte-content p {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .charte-content ul {
+            list-style: none;
+            padding-left: 1rem;
+        }
+
+        .charte-content ul li {
+            margin-bottom: 0.5rem;
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .charte-content ul li:before {
+            content: '∫';
+            position: absolute;
+            left: 0;
+            color: var(--secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .charte-highlight {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(184, 41, 255, 0.1));
+            padding: 1rem;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 10px 10px 0;
+            margin: 1rem 0;
+            font-weight: 500;
+        }
+
+        .charte-highlight i {
+            color: var(--primary);
+            margin-right: 0.5rem;
+        }
+
+        /* Acceptation */
+        .acceptance-box {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 42, 109, 0.3);
+            border-radius: 10px;
+            padding: 1.2rem;
+            margin: 1.5rem 0;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-top: 2px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-group label {
+            color: var(--light);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            cursor: pointer;
+        }
+
+        .checkbox-group label strong {
+            color: var(--primary);
+        }
+
+        /* Boutons */
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--dark);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-reset:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            height: 4px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 2rem 0 1rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .alert-error {
+            background: rgba(255, 42, 109, 0.1);
+            border: 1px solid #ff2a6d;
+            color: #ff2a6d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">
+                <div class="logo-icon">∑</div>
+                <span class="logo-text">Lab_<span class="gradient-text">Math</span></span>
+            </div>
+            
+            <ul class="nav-menu">
+                <li><a href="index.html" class="nav-link">Accueil</a></li>
+                <li><a href="about.html" class="nav-link">À propos</a></li>
+                <li><a href="#services" class="nav-link">Services</a></li>
+                <li><a href="activites.html" class="nav-link">Activités</a></li>
+                <li><a href="realisations.html" class="nav-link">Réalisations</a></li>
+                <li><a href="annonces.html" class="nav-link">Annonces</a></li>
+                <li><a href="membership.html" class="nav-link active">Adhésion</a></li>
+                <li><a href="contact.html" class="nav-link">Contact</a></li>
+                <li><a href="login.html" class="nav-link"><i class="fas fa-lock"></i> Admin</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Formulaire d'adhésion -->
+    <div class="container">
+        <div class="membership-container">
+            <div class="section-header">
+                <span class="hero-badge">
+                    <span class="pulse-dot"></span>
+                    Rejoignez Lab_Math
+                </span>
+                <h2 class="section-title">
+                    Formulaire d'<span class="gradient-text">Adhésion</span>
+                </h2>
+                <p class="section-subtitle">
+                    Devenez membre de notre laboratoire d'excellence et participez à des projets innovants en mathématiques appliquées.
+                </p>
+            </div>
+
+            <!-- Barre de progression -->
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <!-- Formulaire -->
+            <form id="membershipForm" onsubmit="return false;">
+                <!-- Section 1: Informations personnelles -->
+                <div class="form-section">
+                    <h3><i class="fas fa-user"></i> Informations personnelles</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Prénom *</label>
+                            <input type="text" class="form-control" id="prenom" required>
+                            <div class="error-message" id="error-prenom">Ce champ est requis</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Nom *</label>
+                            <input type="text" class="form-control" id="nom" required>
+                            <div class="error-message" id="error-nom">Ce champ est requis</div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Date de naissance *</label>
+                            <input type="date" class="form-control" id="dateNaissance" required>
+                            <div class="error-message" id="error-date">Date invalide</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-flag"></i> Nationalité</label>
+                            <input type="text" class="form-control" id="nationalite">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Coordonnées -->
+                <div class="form-section">
+                    <h3><i class="fas fa-address-card"></i> Coordonnées</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> Email *</label>
+                            <input type="email" class="form-control" id="email" required>
+                            <div class="error-message" id="error-email">Email invalide</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Téléphone *</label>
+                            <input type="tel" class="form-control" id="telephone" required>
+                            <div class="error-message" id="error-tel">Téléphone invalide</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Adresse</label>
+                        <input type="text" class="form-control" id="adresse">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label><i class="fas fa-city"></i> Ville</label>
+                            <input type="text" class="form-control" id="ville">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-globe"></i> Pays</label>
+                            <input type="text" class="form-control" id="pays">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Parcours professionnel -->
+                <div class="form-section">
+                    <h3><i class="fas fa-graduation-cap"></i> Parcours professionnel</h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-briefcase"></i> Titre / Fonction actuelle *</label>
+                        <input type="text" class="form-control" id="titre" required>
+                        <div class="error-message" id="error-titre">Ce champ est requis</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-building"></i> Institution / Employeur</label>
+                        <input type="text" class="form-control" id="institution">
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-flask"></i> Domaine d'expertise *</label>
+                        <select class="form-control" id="domaine" required>
+                            <option value="">Sélectionnez un domaine</option>
+                            <option value="ia">Intelligence Artificielle</option>
+                            <option value="data">Data Science</option>
+                            <option value="geospatial">Géospatial</option>
+                            <option value="robotique">Robotique</option>
+                            <option value="statistiques">Statistiques</option>
+                            <option value="maths_fond">Mathématiques fondamentales</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                        <div class="error-message" id="error-domaine">Ce champ est requis</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-file-alt"></i> Brève présentation de votre parcours</label>
+                        <textarea class="form-control" id="presentation" rows="4" placeholder="Décrivez brièvement votre parcours et vos motivations..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Section 4: Motivation -->
+                <div class="form-section">
+                    <h3><i class="fas fa-rocket"></i> Motivation</h3>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-bullseye"></i> Pourquoi souhaitez-vous rejoindre Lab_Math ? *</label>
+                        <textarea class="form-control" id="motivation" rows="4" required></textarea>
+                        <div class="error-message" id="error-motivation">Ce champ est requis</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fas fa-code-branch"></i> Domaines de recherche qui vous intéressent</label>
+                        <input type="text" class="form-control" id="interets" placeholder="Ex: Modélisation, Algorithmes, Deep Learning...">
+                    </div>
+
+                    <div class="form-group">
+                        <label><i class="fab fa-github"></i> Liens (GitHub, LinkedIn, site personnel)</label>
+                        <input type="url" class="form-control" id="liens" placeholder="https://...">
+                    </div>
+                </div>
+
+                <!-- Charte du Laboratoire -->
+                <div class="form-section">
+                    <h3><i class="fas fa-scroll"></i> Charte du Laboratoire</h3>
+                    
+                    <div class="charte-container">
+                        <div class="charte-content">
+                            <h4>📜 Préambule</h4>
+                            <p>Lab_Math est un laboratoire de recherche en mathématiques appliquées dédié à l'innovation et à l'excellence scientifique. En tant que membre, vous vous engagez à respecter les valeurs et les règles qui garantissent la qualité et l'intégrité de nos travaux.</p>
+                            
+                            <h4>🔬 Article 1 - Confidentialité des recherches</h4>
+                            <p>Les membres du laboratoire sont tenus à une obligation stricte de confidentialité concernant l'ensemble des travaux, recherches, données et résultats produits au sein de Lab_Math.</p>
+                            
+                            <div class="charte-highlight">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Article 1.1 - Non-divulgation :</strong> Aucun résultat, donnée, algorithme ou découverte réalisé dans le cadre des activités du laboratoire ne peut être divulgué, publié, communiqué ou partagé sans l'autorisation expresse et écrite du Conseil d'administration.
+                            </div>
+                            
+                            <h4>⚖️ Article 2 - Publications et communications</h4>
+                            <p>Toute publication, présentation ou communication scientifique utilisant des ressources du laboratoire ou réalisée dans son cadre doit :</p>
+                            <ul>
+                                <li>Être soumise au préalable au Conseil d'administration pour approbation</li>
+                                <li>Mentionner l'affiliation à Lab_Math</li>
+                                <li>Respecter les règles de citation des co-auteurs</li>
+                            </ul>
+                            
+                            <h4>🤝 Article 3 - Collaboration et propriété intellectuelle</h4>
+                            <ul>
+                                <li>Les résultats des recherches sont la propriété conjointe du laboratoire et des chercheurs impliqués</li>
+                                <li>Toute collaboration externe doit être validée par le Conseil d'administration</li>
+                                <li>Les membres s'engagent à partager leurs connaissances dans un esprit de collaboration</li>
+                            </ul>
+                            
+                            <h4>📊 Article 4 - Utilisation des données</h4>
+                            <ul>
+                                <li>Les données de recherche doivent être traitées conformément au RGPD</li>
+                                <li>L'accès aux données sensibles est limité aux personnes autorisées</li>
+                                <li>Toute utilisation de données à des fins personnelles est interdite</li>
+                            </ul>
+                            
+                            <h4>🏆 Article 5 - Éthique et intégrité</h4>
+                            <ul>
+                                <li>Les membres s'engagent à respecter les plus hauts standards d'intégrité scientifique</li>
+                                <li>Le plagiat, la falsification de données et toute forme de fraude sont strictement interdits</li>
+                                <li>Les conflits d'intérêts doivent être déclarés</li>
+                            </ul>
+                            
+                            <h4>⚠️ Article 6 - Sanctions</h4>
+                            <p>Tout manquement à la présente charte, notamment la divulgation non autorisée de résultats, expose le membre à :</p>
+                            <ul>
+                                <li>Un avertissement du Conseil d'administration</li>
+                                <li>La suspension temporaire ou définitive de son affiliation</li>
+                                <li>Des poursuites judiciaires en cas de préjudice avéré</li>
+                            </ul>
+                            
+                            <p style="margin-top: 2rem; font-style: italic; color: var(--primary);">
+                                "La science progresse par le partage, mais se protège par la confidentialité."
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Acceptation de la charte -->
+                    <div class="acceptance-box">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="luCharte">
+                            <label for="luCharte">
+                                <strong>✓ J'ai lu et compris la charte du laboratoire</strong>
+                            </label>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="acceptConfidentialite">
+                            <label for="acceptConfidentialite">
+                                <strong>🔒 J'accepte l'article 1.1 sur la non-divulgation :</strong> Je m'engage à ne divulguer aucun résultat, donnée, algorithme ou découverte réalisé au sein de Lab_Math sans l'approbation écrite du Conseil d'administration.
+                            </label>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="acceptCharte">
+                            <label for="acceptCharte">
+                                <strong>⚖️ J'accepte l'intégralité de la charte</strong> et m'engage à la respecter.
+                            </label>
+                        </div>
+
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="acceptCGU">
+                            <label for="acceptCGU">
+                                <strong>📋 J'accepte les conditions générales d'utilisation</strong> et la politique de confidentialité du laboratoire.
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group" style="margin-top: 1rem;">
+                        <input type="checkbox" id="newsletter">
+                        <label for="newsletter">
+                            <i class="fas fa-envelope-open-text"></i> Je souhaite recevoir la newsletter et les annonces du laboratoire
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Messages d'alerte -->
+                <div class="alert alert-success" id="successMessage">
+                    <i class="fas fa-check-circle"></i> Votre demande d'adhésion a bien été envoyée ! Le Conseil d'administration l'examinera dans les plus brefs délais.
+                </div>
+
+                <div class="alert alert-error" id="errorMessage">
+                    <i class="fas fa-times-circle"></i> Une erreur est survenue. Veuillez réessayer ou contacter l'administrateur.
+                </div>
+
+                <!-- Boutons d'action -->
+                <div class="form-actions">
+                    <button type="button" class="btn-reset" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Réinitialiser
+                    </button>
+                    <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                        <i class="fas fa-paper-plane"></i> Soumettre ma candidature
+                    </button>
+                </div>
+
+                <p style="text-align: center; margin-top: 1rem; color: var(--text-dim); font-size: 0.8rem;">
+                    <i class="fas fa-lock"></i> Les informations collectées sont confidentielles et protégées
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script du formulaire -->
+    <script>
+        // Gestion des checkboxes pour activer le bouton
+        const checkLu = document.getElementById('luCharte');
+        const checkConf = document.getElementById('acceptConfidentialite');
+        const checkCharte = document.getElementById('acceptCharte');
+        const checkCGU = document.getElementById('acceptCGU');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressFill = document.getElementById('progressFill');
+
+        // Fonction de validation des checkboxes
+        function validateCheckboxes() {
+            const allChecked = checkLu.checked && checkConf.checked && checkCharte.checked && checkCGU.checked;
+            submitBtn.disabled = !allChecked;
+            updateProgress();
+        }
+
+        // Mise à jour de la barre de progression
+        function updateProgress() {
+            const inputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+            let filled = 0;
+            
+            inputs.forEach(input => {
+                if (input.value && input.value.trim() !== '') {
+                    filled++;
+                }
+            });
+
+            // Ajouter les checkboxes
+            if (checkLu.checked) filled++;
+            if (checkConf.checked) filled++;
+            if (checkCharte.checked) filled++;
+            if (checkCGU.checked) filled++;
+
+            const total = inputs.length + 4; // +4 pour les checkboxes
+            const percentage = (filled / total) * 100;
+            progressFill.style.width = percentage + '%';
+        }
+
+        // Validation des champs requis
+        function validateField(field) {
+            const errorId = 'error-' + field.id;
+            const errorElement = document.getElementById(errorId);
+            
+            if (!field.value || field.value.trim() === '') {
+                field.classList.add('error');
+                if (errorElement) errorElement.classList.add('show');
+                return false;
+            } else {
+                field.classList.remove('error');
+                if (errorElement) errorElement.classList.remove('show');
+                return true;
+            }
+        }
+
+        // Validation email
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        // Gestionnaires d'événements
+        checkLu.addEventListener('change', validateCheckboxes);
+        checkConf.addEventListener('change', validateCheckboxes);
+        checkCharte.addEventListener('change', validateCheckboxes);
+        checkCGU.addEventListener('change', validateCheckboxes);
+
+        // Validation en temps réel
+        document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+            field.addEventListener('input', function() {
+                validateField(this);
+                updateProgress();
+            });
+            field.addEventListener('blur', function() {
+                validateField(this);
+            });
+        });
+
+        // Gestionnaire de soumission
+        document.getElementById('membershipForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Validation finale
+            let isValid = true;
+            document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+                if (!validateField(field)) {
+                    isValid = false;
+                }
+            });
+
+            // Validation email spécifique
+            const email = document.getElementById('email');
+            if (!validateEmail(email.value)) {
+                email.classList.add('error');
+                document.getElementById('error-email').classList.add('show');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                document.getElementById('errorMessage').classList.add('show');
+                setTimeout(() => {
+                    document.getElementById('errorMessage').classList.remove('show');
+                }, 3000);
+                return;
+            }
+
+            // Collecte des données
+            const formData = {
+                prenom: document.getElementById('prenom').value,
+                nom: document.getElementById('nom').value,
+                dateNaissance: document.getElementById('dateNaissance').value,
+                nationalite: document.getElementById('nationalite').value,
+                email: email.value,
+                telephone: document.getElementById('telephone').value,
+                adresse: document.getElementById('adresse').value,
+                ville: document.getElementById('ville').value,
+                pays: document.getElementById('pays').value,
+                titre: document.getElementById('titre').value,
+                institution: document.getElementById('institution').value,
+                domaine: document.getElementById('domaine').value,
+                presentation: document.getElementById('presentation').value,
+                motivation: document.getElementById('motivation').value,
+                interets: document.getElementById('interets').value,
+                liens: document.getElementById('liens').value,
+                newsletter: document.getElementById('newsletter').checked,
+                dateSoumission: new Date().toISOString(),
+                statut: 'en_attente'
+            };
+
+            try {
+                // Envoi des données (à adapter selon votre backend)
+                const response = await fetch('api/membership.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    document.getElementById('successMessage').classList.add('show');
+                    document.getElementById('membershipForm').reset();
+                    progressFill.style.width = '0%';
+                    
+                    // Désactiver à nouveau le bouton
+                    checkLu.checked = false;
+                    checkConf.checked = false;
+                    checkCharte.checked = false;
+                    checkCGU.checked = false;
+                    validateCheckboxes();
+
+                    // Redirection après 3 secondes
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                } else {
+                    throw new Error('Erreur serveur');
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').classList.add('show');
+                setTimeout(() => {
+                    document.getElementById('errorMessage').classList.remove('show');
+                }, 3000);
+            }
+        });
+
+        // Fonction de réinitialisation
+        function resetForm() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ?')) {
+                document.getElementById('membershipForm').reset();
+                progressFill.style.width = '0%';
+                checkLu.checked = false;
+                checkConf.checked = false;
+                checkCharte.checked = false;
+                checkCGU.checked = false;
+                validateCheckboxes();
+                
+                document.querySelectorAll('.error-message').forEach(msg => {
+                    msg.classList.remove('show');
+                });
+                document.querySelectorAll('.form-control').forEach(field => {
+                    field.classList.remove('error');
+                });
+            }
+        }
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <div class="logo-icon">∑</div>
+                        <span class="logo-text">Lab_<span class="gradient-text">Math</span></span>
+                    </div>
+                    <p>Laboratoire de Mathématiques Appliquées<br>Recherche & Innovation</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="index.html">Accueil</a></li>
+                        <li><a href="about.html">À propos</a></li>
+                        <li><a href="membership.html">Adhésion</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contact@labmath.cm</li>
+                        <li><i class="fas fa-phone"></i> +237 620 307 439</li>
+                        <li><i class="fas fa-map-marker-alt"></i> Yaoundé, Cameroun</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Lab_Math. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
