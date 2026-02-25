@@ -1,4 +1,3 @@
-<!-- membership.html -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -11,9 +10,182 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    
     <style>
-        /* Styles supplémentaires pour le formulaire */
+        /* ===== VARIABLES ===== */
+        :root {
+            --primary: #00ffff;
+            --secondary: #b829ff;
+            --accent: #ff2a6d;
+            --dark: #0a0a0f;
+            --darker: #050507;
+            --light: #e0e0ff;
+            --text-dim: #a0a0cc;
+            --success: #00ff00;
+            --error: #ff2a6d;
+            --warning: #ffaa00;
+            
+            --gradient-1: linear-gradient(135deg, #00ffff, #b829ff, #ff2a6d);
+            --gradient-2: linear-gradient(45deg, #ff2a6d, #00ffff);
+            
+            --shadow-neon: 0 0 10px rgba(0, 255, 255, 0.3);
+            --shadow-neon-strong: 0 0 20px rgba(0, 255, 255, 0.5);
+            --shadow-purple: 0 0 20px rgba(184, 41, 255, 0.5);
+        }
+
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Arrière-plan animé */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(184, 41, 255, 0.05) 0%, transparent 50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* Grille géométrique animée */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+            animation: gridMove 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        /* ===== NAVIGATION ===== */
+        .navbar {
+            background: rgba(5, 8, 15, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-link {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 0.5rem 0;
+            transition: color 0.3s;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-1);
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .nav-link:hover::after,
+        .nav-link.active::after {
+            width: 100%;
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+        }
+
+        /* ===== CONTAINER PRINCIPAL ===== */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* ===== FORMULAIRE ===== */
         .membership-container {
             max-width: 900px;
             margin: 2rem auto;
@@ -25,6 +197,79 @@
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
         }
 
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 30px;
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulseDot 2s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .gradient-text {
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: gradientShift 5s linear infinite;
+            background-size: 200% 200%;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .section-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        /* Barre de progression */
+        .progress-bar {
+            height: 4px;
+            background: rgba(0, 255, 255, 0.1);
+            border-radius: 2px;
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-1);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Sections du formulaire */
         .form-section {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(184, 41, 255, 0.2);
@@ -44,8 +289,10 @@
 
         .form-section h3 i {
             font-size: 1.5rem;
+            color: var(--secondary);
         }
 
+        /* Grille du formulaire */
         .form-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -53,6 +300,7 @@
             margin-bottom: 1rem;
         }
 
+        /* Groupes de champs */
         .form-group {
             margin-bottom: 1rem;
         }
@@ -68,8 +316,10 @@
         .form-group label i {
             color: var(--primary);
             width: 20px;
+            margin-right: 0.3rem;
         }
 
+        /* Champs de formulaire */
         .form-control {
             width: 100%;
             padding: 0.8rem 1rem;
@@ -78,6 +328,7 @@
             border-radius: 8px;
             color: var(--light);
             font-family: 'Inter', sans-serif;
+            font-size: 1rem;
             transition: all 0.3s;
         }
 
@@ -89,12 +340,13 @@
         }
 
         .form-control.error {
-            border-color: #ff2a6d;
+            border-color: var(--error);
             box-shadow: 0 0 10px rgba(255, 42, 109, 0.3);
         }
 
+        /* Messages d'erreur */
         .error-message {
-            color: #ff2a6d;
+            color: var(--error);
             font-size: 0.8rem;
             margin-top: 0.3rem;
             display: none;
@@ -104,7 +356,23 @@
             display: block;
         }
 
-        /* Charte section */
+        /* Select */
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300ffff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Textarea */
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        /* Charte */
         .charte-container {
             background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(184, 41, 255, 0.05));
             border: 2px solid rgba(184, 41, 255, 0.3);
@@ -154,6 +422,7 @@
         .charte-content ul {
             list-style: none;
             padding-left: 1rem;
+            margin-bottom: 1rem;
         }
 
         .charte-content ul li {
@@ -184,7 +453,7 @@
             margin-right: 0.5rem;
         }
 
-        /* Acceptation */
+        /* Zone d'acceptation */
         .acceptance-box {
             background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 42, 109, 0.3);
@@ -219,71 +488,7 @@
             color: var(--primary);
         }
 
-        /* Boutons */
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-        }
-
-        .btn-submit {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--dark);
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-submit:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-reset {
-            background: transparent;
-            border: 1px solid var(--primary);
-            color: var(--primary);
-            padding: 1rem 2rem;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-reset:hover {
-            background: rgba(0, 255, 255, 0.1);
-        }
-
-        /* Progress bar */
-        .progress-bar {
-            height: 4px;
-            background: rgba(0, 255, 255, 0.1);
-            border-radius: 2px;
-            margin: 2rem 0 1rem;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        /* Messages */
+        /* Alertes */
         .alert {
             padding: 1rem;
             border-radius: 8px;
@@ -297,14 +502,140 @@
 
         .alert-success {
             background: rgba(0, 255, 0, 0.1);
-            border: 1px solid #00ff00;
-            color: #00ff00;
+            border: 1px solid var(--success);
+            color: var(--success);
         }
 
         .alert-error {
             background: rgba(255, 42, 109, 0.1);
-            border: 1px solid #ff2a6d;
-            color: #ff2a6d;
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        /* Boutons */
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 1rem;
+            text-decoration: none;
+        }
+
+        .btn-submit {
+            background: var(--gradient-1);
+            color: var(--dark);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-neon-strong);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-reset:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--darker);
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            padding: 3rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .footer-section h4 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section ul li a {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .footer-section ul li a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(0, 255, 255, 0.1);
+            color: var(--text-dim);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .membership-container {
+                padding: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -320,13 +651,9 @@
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Accueil</a></li>
                 <li><a href="about.html" class="nav-link">À propos</a></li>
-                <li><a href="#services" class="nav-link">Services</a></li>
-                <li><a href="activites.html" class="nav-link">Activités</a></li>
-                <li><a href="realisations.html" class="nav-link">Réalisations</a></li>
-                <li><a href="annonces.html" class="nav-link">Annonces</a></li>
                 <li><a href="membership.html" class="nav-link active">Adhésion</a></li>
                 <li><a href="contact.html" class="nav-link">Contact</a></li>
-                <li><a href="login.html" class="nav-link"><i class="fas fa-lock"></i> Admin</a></li>
+                <li><a href="admin-memberships.html" class="nav-link"><i class="fas fa-lock"></i> Admin</a></li>
             </ul>
         </div>
     </nav>
@@ -361,13 +688,13 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label><i class="fas fa-user"></i> Prénom *</label>
-                            <input type="text" class="form-control" id="prenom" required>
+                            <input type="text" class="form-control" id="prenom" placeholder="Jean" required>
                             <div class="error-message" id="error-prenom">Ce champ est requis</div>
                         </div>
                         
                         <div class="form-group">
                             <label><i class="fas fa-user"></i> Nom *</label>
-                            <input type="text" class="form-control" id="nom" required>
+                            <input type="text" class="form-control" id="nom" placeholder="MARTIN" required>
                             <div class="error-message" id="error-nom">Ce champ est requis</div>
                         </div>
                     </div>
@@ -381,7 +708,7 @@
                         
                         <div class="form-group">
                             <label><i class="fas fa-flag"></i> Nationalité</label>
-                            <input type="text" class="form-control" id="nationalite">
+                            <input type="text" class="form-control" id="nationalite" placeholder="Camerounaise">
                         </div>
                     </div>
                 </div>
@@ -393,31 +720,31 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label><i class="fas fa-envelope"></i> Email *</label>
-                            <input type="email" class="form-control" id="email" required>
+                            <input type="email" class="form-control" id="email" placeholder="jean.martin@example.com" required>
                             <div class="error-message" id="error-email">Email invalide</div>
                         </div>
                         
                         <div class="form-group">
                             <label><i class="fas fa-phone"></i> Téléphone *</label>
-                            <input type="tel" class="form-control" id="telephone" required>
+                            <input type="tel" class="form-control" id="telephone" placeholder="+237 620 307 439" required>
                             <div class="error-message" id="error-tel">Téléphone invalide</div>
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label><i class="fas fa-map-marker-alt"></i> Adresse</label>
-                        <input type="text" class="form-control" id="adresse">
+                        <input type="text" class="form-control" id="adresse" placeholder="123 Rue de la Recherche">
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label><i class="fas fa-city"></i> Ville</label>
-                            <input type="text" class="form-control" id="ville">
+                            <input type="text" class="form-control" id="ville" placeholder="Yaoundé">
                         </div>
                         
                         <div class="form-group">
                             <label><i class="fas fa-globe"></i> Pays</label>
-                            <input type="text" class="form-control" id="pays">
+                            <input type="text" class="form-control" id="pays" placeholder="Cameroun">
                         </div>
                     </div>
                 </div>
@@ -428,13 +755,13 @@
                     
                     <div class="form-group">
                         <label><i class="fas fa-briefcase"></i> Titre / Fonction actuelle *</label>
-                        <input type="text" class="form-control" id="titre" required>
+                        <input type="text" class="form-control" id="titre" placeholder="Directeur de Recherche" required>
                         <div class="error-message" id="error-titre">Ce champ est requis</div>
                     </div>
 
                     <div class="form-group">
                         <label><i class="fas fa-building"></i> Institution / Employeur</label>
-                        <input type="text" class="form-control" id="institution">
+                        <input type="text" class="form-control" id="institution" placeholder="Université de Yaoundé I">
                     </div>
 
                     <div class="form-group">
@@ -464,7 +791,7 @@
                     
                     <div class="form-group">
                         <label><i class="fas fa-bullseye"></i> Pourquoi souhaitez-vous rejoindre Lab_Math ? *</label>
-                        <textarea class="form-control" id="motivation" rows="4" required></textarea>
+                        <textarea class="form-control" id="motivation" rows="4" placeholder="Expliquez vos motivations..." required></textarea>
                         <div class="error-message" id="error-motivation">Ce champ est requis</div>
                     </div>
 
@@ -475,7 +802,7 @@
 
                     <div class="form-group">
                         <label><i class="fab fa-github"></i> Liens (GitHub, LinkedIn, site personnel)</label>
-                        <input type="url" class="form-control" id="liens" placeholder="https://...">
+                        <input type="url" class="form-control" id="liens" placeholder="https://github.com/votreprofil">
                     </div>
                 </div>
 
@@ -561,13 +888,6 @@
                                 <strong>⚖️ J'accepte l'intégralité de la charte</strong> et m'engage à la respecter.
                             </label>
                         </div>
-
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="acceptCGU">
-                            <label for="acceptCGU">
-                                <strong>📋 J'accepte les conditions générales d'utilisation</strong> et la politique de confidentialité du laboratoire.
-                            </label>
-                        </div>
                     </div>
 
                     <div class="checkbox-group" style="margin-top: 1rem;">
@@ -589,10 +909,10 @@
 
                 <!-- Boutons d'action -->
                 <div class="form-actions">
-                    <button type="button" class="btn-reset" onclick="resetForm()">
+                    <button type="button" class="btn btn-reset" onclick="resetForm()">
                         <i class="fas fa-undo"></i> Réinitialiser
                     </button>
-                    <button type="submit" class="btn-submit" id="submitBtn" disabled>
+                    <button type="submit" class="btn btn-submit" id="submitBtn" disabled>
                         <i class="fas fa-paper-plane"></i> Soumettre ma candidature
                     </button>
                 </div>
@@ -604,20 +924,58 @@
         </div>
     </div>
 
-    <!-- Script du formulaire -->
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo">
+                        <div class="logo-icon">∑</div>
+                        <span class="logo-text">Lab_<span class="gradient-text">Math</span></span>
+                    </div>
+                    <p style="margin-top: 1rem;">Laboratoire de Mathématiques Appliquées<br>Recherche & Innovation</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Liens rapides</h4>
+                    <ul>
+                        <li><a href="index.html">Accueil</a></li>
+                        <li><a href="membership.html">Adhésion</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contact@labmath.cm</li>
+                        <li><i class="fas fa-phone"></i> +237 620 307 439</li>
+                        <li><i class="fas fa-map-marker-alt"></i> Yaoundé, Cameroun</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 Lab_Math. Tous droits réservés.</p>
+            </div>
+        </div>
+    </footer>
+
     <script>
         // Gestion des checkboxes pour activer le bouton
         const checkLu = document.getElementById('luCharte');
         const checkConf = document.getElementById('acceptConfidentialite');
         const checkCharte = document.getElementById('acceptCharte');
-        const checkCGU = document.getElementById('acceptCGU');
         const submitBtn = document.getElementById('submitBtn');
         const progressFill = document.getElementById('progressFill');
 
         // Fonction de validation des checkboxes
         function validateCheckboxes() {
-            const allChecked = checkLu.checked && checkConf.checked && checkCharte.checked && checkCGU.checked;
-            submitBtn.disabled = !allChecked;
+            const allChecked = checkLu && checkConf && checkCharte && 
+                              checkLu.checked && checkConf.checked && checkCharte.checked;
+            if (submitBtn) {
+                submitBtn.disabled = !allChecked;
+            }
             updateProgress();
         }
 
@@ -633,14 +991,15 @@
             });
 
             // Ajouter les checkboxes
-            if (checkLu.checked) filled++;
-            if (checkConf.checked) filled++;
-            if (checkCharte.checked) filled++;
-            if (checkCGU.checked) filled++;
+            if (checkLu && checkLu.checked) filled++;
+            if (checkConf && checkConf.checked) filled++;
+            if (checkCharte && checkCharte.checked) filled++;
 
-            const total = inputs.length + 4; // +4 pour les checkboxes
+            const total = inputs.length + 3;
             const percentage = (filled / total) * 100;
-            progressFill.style.width = percentage + '%';
+            if (progressFill) {
+                progressFill.style.width = percentage + '%';
+            }
         }
 
         // Validation des champs requis
@@ -666,10 +1025,9 @@
         }
 
         // Gestionnaires d'événements
-        checkLu.addEventListener('change', validateCheckboxes);
-        checkConf.addEventListener('change', validateCheckboxes);
-        checkCharte.addEventListener('change', validateCheckboxes);
-        checkCGU.addEventListener('change', validateCheckboxes);
+        if (checkLu) checkLu.addEventListener('change', validateCheckboxes);
+        if (checkConf) checkConf.addEventListener('change', validateCheckboxes);
+        if (checkCharte) checkCharte.addEventListener('change', validateCheckboxes);
 
         // Validation en temps réel
         document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
@@ -683,102 +1041,111 @@
         });
 
         // Gestionnaire de soumission
-        document.getElementById('membershipForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        const form = document.getElementById('membershipForm');
+        if (form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-            // Validation finale
-            let isValid = true;
-            document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
-                if (!validateField(field)) {
-                    isValid = false;
-                }
-            });
-
-            // Validation email spécifique
-            const email = document.getElementById('email');
-            if (!validateEmail(email.value)) {
-                email.classList.add('error');
-                document.getElementById('error-email').classList.add('show');
-                isValid = false;
-            }
-
-            if (!isValid) {
-                document.getElementById('errorMessage').classList.add('show');
-                setTimeout(() => {
-                    document.getElementById('errorMessage').classList.remove('show');
-                }, 3000);
-                return;
-            }
-
-            // Collecte des données
-            const formData = {
-                prenom: document.getElementById('prenom').value,
-                nom: document.getElementById('nom').value,
-                dateNaissance: document.getElementById('dateNaissance').value,
-                nationalite: document.getElementById('nationalite').value,
-                email: email.value,
-                telephone: document.getElementById('telephone').value,
-                adresse: document.getElementById('adresse').value,
-                ville: document.getElementById('ville').value,
-                pays: document.getElementById('pays').value,
-                titre: document.getElementById('titre').value,
-                institution: document.getElementById('institution').value,
-                domaine: document.getElementById('domaine').value,
-                presentation: document.getElementById('presentation').value,
-                motivation: document.getElementById('motivation').value,
-                interets: document.getElementById('interets').value,
-                liens: document.getElementById('liens').value,
-                newsletter: document.getElementById('newsletter').checked,
-                dateSoumission: new Date().toISOString(),
-                statut: 'en_attente'
-            };
-
-            try {
-                // Envoi des données (à adapter selon votre backend)
-                const response = await fetch('api/membership.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                // Validation finale
+                let isValid = true;
+                document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+                    if (!validateField(field)) {
+                        isValid = false;
+                    }
                 });
 
-                if (response.ok) {
-                    document.getElementById('successMessage').classList.add('show');
-                    document.getElementById('membershipForm').reset();
-                    progressFill.style.width = '0%';
+                // Validation email spécifique
+                const email = document.getElementById('email');
+                if (email && !validateEmail(email.value)) {
+                    email.classList.add('error');
+                    const errorEmail = document.getElementById('error-email');
+                    if (errorEmail) errorEmail.classList.add('show');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    const errorMsg = document.getElementById('errorMessage');
+                    if (errorMsg) {
+                        errorMsg.classList.add('show');
+                        setTimeout(() => {
+                            errorMsg.classList.remove('show');
+                        }, 3000);
+                    }
+                    return;
+                }
+
+                // Collecte des données
+                const formData = {
+                    prenom: document.getElementById('prenom')?.value || '',
+                    nom: document.getElementById('nom')?.value || '',
+                    dateNaissance: document.getElementById('dateNaissance')?.value || '',
+                    nationalite: document.getElementById('nationalite')?.value || '',
+                    email: document.getElementById('email')?.value || '',
+                    telephone: document.getElementById('telephone')?.value || '',
+                    adresse: document.getElementById('adresse')?.value || '',
+                    ville: document.getElementById('ville')?.value || '',
+                    pays: document.getElementById('pays')?.value || '',
+                    titre: document.getElementById('titre')?.value || '',
+                    institution: document.getElementById('institution')?.value || '',
+                    domaine: document.getElementById('domaine')?.value || '',
+                    presentation: document.getElementById('presentation')?.value || '',
+                    motivation: document.getElementById('motivation')?.value || '',
+                    interets: document.getElementById('interets')?.value || '',
+                    liens: document.getElementById('liens')?.value || '',
+                    newsletter: document.getElementById('newsletter')?.checked || false
+                };
+
+                try {
+                    // Simulation d'envoi (à remplacer par votre API)
+                    console.log('Données soumises:', formData);
                     
-                    // Désactiver à nouveau le bouton
-                    checkLu.checked = false;
-                    checkConf.checked = false;
-                    checkCharte.checked = false;
-                    checkCGU.checked = false;
+                    // Simuler un délai réseau
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Afficher le message de succès
+                    const successMsg = document.getElementById('successMessage');
+                    if (successMsg) {
+                        successMsg.classList.add('show');
+                    }
+                    
+                    // Réinitialiser le formulaire
+                    if (form) form.reset();
+                    if (progressFill) progressFill.style.width = '0%';
+                    
+                    // Désactiver les checkboxes
+                    if (checkLu) checkLu.checked = false;
+                    if (checkConf) checkConf.checked = false;
+                    if (checkCharte) checkCharte.checked = false;
                     validateCheckboxes();
 
-                    // Redirection après 3 secondes
+                    // Cacher le message après 5 secondes
                     setTimeout(() => {
-                        window.location.href = 'index.html';
-                    }, 3000);
-                } else {
-                    throw new Error('Erreur serveur');
+                        if (successMsg) successMsg.classList.remove('show');
+                    }, 5000);
+
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    const errorMsg = document.getElementById('errorMessage');
+                    if (errorMsg) {
+                        errorMsg.classList.add('show');
+                        setTimeout(() => {
+                            errorMsg.classList.remove('show');
+                        }, 3000);
+                    }
                 }
-            } catch (error) {
-                document.getElementById('errorMessage').classList.add('show');
-                setTimeout(() => {
-                    document.getElementById('errorMessage').classList.remove('show');
-                }, 3000);
-            }
-        });
+            });
+        }
 
         // Fonction de réinitialisation
         function resetForm() {
             if (confirm('Êtes-vous sûr de vouloir réinitialiser le formulaire ?')) {
-                document.getElementById('membershipForm').reset();
-                progressFill.style.width = '0%';
-                checkLu.checked = false;
-                checkConf.checked = false;
-                checkCharte.checked = false;
-                checkCGU.checked = false;
+                const form = document.getElementById('membershipForm');
+                if (form) form.reset();
+                if (progressFill) progressFill.style.width = '0%';
+                
+                if (checkLu) checkLu.checked = false;
+                if (checkConf) checkConf.checked = false;
+                if (checkCharte) checkCharte.checked = false;
                 validateCheckboxes();
                 
                 document.querySelectorAll('.error-message').forEach(msg => {
@@ -789,45 +1156,11 @@
                 });
             }
         }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            validateCheckboxes();
+        });
     </script>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <div class="logo">
-                        <div class="logo-icon">∑</div>
-                        <span class="logo-text">Lab_<span class="gradient-text">Math</span></span>
-                    </div>
-                    <p>Laboratoire de Mathématiques Appliquées<br>Recherche & Innovation</p>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Liens rapides</h4>
-                    <ul>
-                        <li><a href="index.html">Accueil</a></li>
-                        <li><a href="about.html">À propos</a></li>
-                        <li><a href="membership.html">Adhésion</a></li>
-                        <li><a href="contact.html">Contact</a></li>
-                    </ul>
-                </div>
-                
-                <div class="footer-section">
-                    <h4>Contact</h4>
-                    <ul>
-                        <li><i class="fas fa-envelope"></i> contact@labmath.cm</li>
-                        <li><i class="fas fa-phone"></i> +237 620 307 439</li>
-                        <li><i class="fas fa-map-marker-alt"></i> Yaoundé, Cameroun</li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="footer-bottom">
-                <p>&copy; 2025 Lab_Math. Tous droits réservés.</p>
-            </div>
-        </div>
-    </footer>
-
 </body>
 </html>
