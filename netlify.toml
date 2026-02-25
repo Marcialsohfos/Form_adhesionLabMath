@@ -1,0 +1,30 @@
+[build]
+  command = "echo 'No build required'"
+  functions = "netlify/functions"
+  publish = "."
+
+[build.environment]
+  # Variables d'environnement pour Airtable (optionnel)
+  AIRTABLE_API_KEY = ""
+  AIRTABLE_BASE_ID = ""
+  AIRTABLE_TABLE = "Adhésions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/membership/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin-memberships.html"
+  status = 200
+
+# Headers de sécurité
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
