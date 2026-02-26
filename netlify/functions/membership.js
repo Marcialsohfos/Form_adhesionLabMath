@@ -1,10 +1,9 @@
 // netlify/functions/membership.js
-// Gère toutes les opérations d'adhésion pour Lab_Math
-// Compatible avec Netlify Functions
-
 const crypto = require('crypto');
+const fs = require('fs').promises;
+const path = require('path');
 
-// Configuration CORS pour permettre les requêtes depuis votre site
+// Configuration CORS
 const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
@@ -12,9 +11,28 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
+// Chemin du fichier de données
+const DATA_FILE_PATH = path.resolve(__dirname, 'data.json');
+
+// Fonction pour lire les données
+async function readData() {
+    try {
+        const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        // Si le fichier n'existe pas, retourner un tableau vide
+        return [];
+    }
+}
+
+// Fonction pour écrire les données
+async function writeData(data) {
+    await fs.writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2));
+}
+
 // Gestionnaire principal
 exports.handler = async (event) => {
-    // Gérer les requêtes OPTIONS (pre-flight CORS)
+    // Gérer les requêtes OPTIONS
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -24,25 +42,36 @@ exports.handler = async (event) => {
     }
 
     try {
-        // Router selon la méthode HTTP et le chemin
         const path = event.path.replace('/.netlify/functions/membership', '');
         
-        switch (event.httpMethod) {
-            case 'GET':
-                return await handleGet(event, path);
-            case 'POST':
-                return await handlePost(event, path);
-            case 'PUT':
-                return await handlePut(event, path);
-            case 'DELETE':
-                return await handleDelete(event, path);
-            default:
-                return {
-                    statusCode: 405,
-                    headers,
-                    body: JSON.stringify({ error: 'Méthode non autorisée' })
-                };
+        // Routes
+        if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit/')) {
+            return await submitMembership(event);
         }
+        
+        if (event.httpMethod === 'GET' && (path === '/members' || path === '/members/')) {
+            return await getAllMembers(event);
+        }
+        
+        if (event.httpMethod === 'GET' && path.startsWith('/member/')) {
+            const id = path.replace('/member/', '');
+            return await getMemberById(id);
+        }
+        
+        if (event.httpMethod === 'POST' && (path === '/login' || path === '/login/')) {
+            return await adminLogin(event);
+        }
+        
+        if (event.httpMethod === 'PUT' && path.startsWith('/update/')) {
+            const id = path.replace('/update/', '');
+            return await updateMemberStatus(event, id);
+        }
+
+        return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({ error: 'Route non trouvée' })
+        };
     } catch (error) {
         console.error('Erreur:', error);
         return {
@@ -57,184 +86,91 @@ exports.handler = async (event) => {
     }
 };
 
-// ==================== GESTION DES REQUÊTES GET ====================
-async function handleGet(event, path) {
-    const params = event.queryStringParameters || {};
-    
-    // Route: /membership/members - Récupère tous les membres
-    if (path === '/members' || path === '/members/') {
-        return await getAllMembers(params);
-    }
-    
-    // Route: /membership/member/:id - Récupère un membre spécifique
-    if (path.startsWith('/member/')) {
-        const id = path.replace('/member/', '');
-        return await getMemberById(id);
-    }
-    
-    // Route: /membership/stats - Récupère les statistiques
-    if (path === '/stats' || path === '/stats/') {
-        return await getStats();
-    }
-    
-    // Route: /membership/export - Export CSV
-    if (path === '/export' || path === '/export/') {
-        return await exportMembers(params.format);
-    }
-    
-    // Route par défaut
-    return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Route non trouvée' })
-    };
-}
+// Soumission du formulaire
+async function submitMembership(event) {
+    try {
+        const data = JSON.parse(event.body || '{}');
+        
+        // Validation des données requises
+        const required = ['prenom', 'nom', 'email', 'telephone', 'titre', 'domaine', 'motivation'];
+        for (const field of required) {
+            if (!data[field] || data[field].trim() === '') {
+                return {
+                    statusCode: 400,
+                    headers,
+                    body: JSON.stringify({ 
+                        success: false, 
+                        error: `Le champ ${field} est requis` 
+                    })
+                };
+            }
+        }
 
-// ==================== GESTION DES REQUÊTES POST ====================
-async function handlePost(event, path) {
-    const data = JSON.parse(event.body || '{}');
-    
-    // Route: /membership/submit - Soumission du formulaire d'adhésion
-    if (path === '/submit' || path === '/submit/') {
-        return await submitMembership(data);
-    }
-    
-    // Route: /membership/login - Connexion admin
-    if (path === '/login' || path === '/login/') {
-        return await adminLogin(data);
-    }
-    
-    // Route: /membership/verify - Vérification d'email
-    if (path === '/verify' || path === '/verify/') {
-        return await verifyEmail(data);
-    }
-    
-    return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Route non trouvée' })
-    };
-}
-
-// ==================== GESTION DES REQUÊTES PUT ====================
-async function handlePut(event, path) {
-    const data = JSON.parse(event.body || '{}');
-    
-    // Route: /membership/update/:id - Mise à jour du statut
-    if (path.startsWith('/update/')) {
-        const id = path.replace('/update/', '');
-        return await updateMemberStatus(id, data);
-    }
-    
-    // Route: /membership/member/:id - Mise à jour complète
-    if (path.startsWith('/member/')) {
-        const id = path.replace('/member/', '');
-        return await updateMember(id, data);
-    }
-    
-    return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Route non trouvée' })
-    };
-}
-
-// ==================== GESTION DES REQUÊTES DELETE ====================
-async function handleDelete(event, path) {
-    // Route: /membership/member/:id - Suppression d'un membre
-    if (path.startsWith('/member/')) {
-        const id = path.replace('/member/', '');
-        return await deleteMember(id);
-    }
-    
-    return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Route non trouvée' })
-    };
-}
-
-// ==================== FONCTIONS MÉTIER ====================
-
-/**
- * Soumission du formulaire d'adhésion
- */
-async function submitMembership(data) {
-    // Validation des données requises
-    const required = ['prenom', 'nom', 'email', 'telephone', 'titre', 'domaine', 'motivation'];
-    for (const field of required) {
-        if (!data[field] || data[field].trim() === '') {
+        // Validation email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(data.email)) {
             return {
                 statusCode: 400,
                 headers,
                 body: JSON.stringify({ 
                     success: false, 
-                    error: `Le champ ${field} est requis` 
+                    error: 'Format d\'email invalide' 
                 })
             };
         }
-    }
 
-    // Validation email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email)) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ 
-                success: false, 
-                error: 'Format d\'email invalide' 
-            })
+        // Lire les données existantes
+        const members = await readData();
+
+        // Vérifier si l'email existe déjà
+        const emailExists = members.some(m => m.email.toLowerCase() === data.email.toLowerCase());
+        if (emailExists) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ 
+                    success: false, 
+                    error: 'Cet email est déjà utilisé pour une adhésion' 
+                })
+            };
+        }
+
+        // Générer un ID unique
+        const id = 'MEM_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+
+        // Créer l'objet membre complet
+        const newMember = {
+            id: id,
+            prenom: data.prenom.trim(),
+            nom: data.nom.trim().toUpperCase(),
+            dateNaissance: data.dateNaissance || '',
+            nationalite: data.nationalite || '',
+            email: data.email.trim().toLowerCase(),
+            telephone: data.telephone.trim(),
+            adresse: data.adresse || '',
+            ville: data.ville || '',
+            pays: data.pays || '',
+            titre: data.titre.trim(),
+            institution: data.institution || '',
+            domaine: data.domaine,
+            presentation: data.presentation || '',
+            motivation: data.motivation.trim(),
+            interets: data.interets || '',
+            liens: data.liens || '',
+            newsletter: data.newsletter || false,
+            date_soumission: new Date().toISOString(),
+            statut: 'en_attente',
+            ip: event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown',
+            userAgent: event.headers['user-agent'] || 'unknown'
         };
-    }
 
-    // Générer un ID unique
-    const id = 'MEM_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
-
-    // Créer l'objet membre complet
-    const newMember = {
-        id: id,
-        prenom: data.prenom.trim(),
-        nom: data.nom.trim().toUpperCase(),
-        dateNaissance: data.dateNaissance || '',
-        nationalite: data.nationalite || '',
-        email: data.email.trim().toLowerCase(),
-        telephone: data.telephone.trim(),
-        adresse: data.adresse || '',
-        ville: data.ville || '',
-        pays: data.pays || '',
-        titre: data.titre.trim(),
-        institution: data.institution || '',
-        domaine: data.domaine,
-        presentation: data.presentation || '',
-        motivation: data.motivation.trim(),
-        interets: data.interets || '',
-        liens: data.liens || '',
-        newsletter: data.newsletter || false,
-        date_soumission: new Date().toISOString(),
-        statut: 'en_attente',
-        ip: event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown',
-        userAgent: event.headers['user-agent'] || 'unknown'
-    };
-
-    try {
-        // ICI : Sauvegarde dans votre système de stockage
-        // Option 1: Airtable (recommandé)
-        const airtableResult = await saveToAirtable(newMember);
+        // Ajouter le nouveau membre
+        members.push(newMember);
         
-        // Option 2: Google Sheets (via API)
-        // const sheetsResult = await saveToGoogleSheets(newMember);
-        
-        // Option 3: MongoDB Atlas
-        // const mongoResult = await saveToMongoDB(newMember);
-        
-        // Option 4: Fichier JSON (si vous utilisez un stockage de fichiers)
-        // const jsonResult = await saveToJSON(newMember);
+        // Sauvegarder dans le fichier
+        await writeData(members);
 
-        // Envoyer un email de confirmation
-        await sendConfirmationEmail(newMember);
-
-        // Journaliser l'action
+        // Journaliser
         console.log(`Nouvelle adhésion: ${newMember.prenom} ${newMember.nom} - ${newMember.email}`);
 
         return {
@@ -243,18 +179,12 @@ async function submitMembership(data) {
             body: JSON.stringify({
                 success: true,
                 message: 'Votre demande d\'adhésion a été enregistrée avec succès',
-                id: id,
-                data: {
-                    prenom: newMember.prenom,
-                    nom: newMember.nom,
-                    email: newMember.email,
-                    statut: newMember.statut
-                }
+                id: id
             })
         };
 
     } catch (error) {
-        console.error('Erreur sauvegarde:', error);
+        console.error('Erreur soumission:', error);
         return {
             statusCode: 500,
             headers,
@@ -266,25 +196,19 @@ async function submitMembership(data) {
     }
 }
 
-/**
- * Récupère tous les membres (pour l'admin)
- */
-async function getAllMembers(params) {
+// Récupérer tous les membres
+async function getAllMembers(event) {
     try {
-        // ICI : Récupération depuis votre système de stockage
-        const members = await fetchAllFromStorage(params);
+        const members = await readData();
+        const params = event.queryStringParameters || {};
         
-        // Filtrer selon les paramètres
+        // Filtrer selon le statut si spécifié
         let filteredMembers = members;
-        
         if (params.statut) {
             filteredMembers = filteredMembers.filter(m => m.statut === params.statut);
         }
         
-        if (params.domaine) {
-            filteredMembers = filteredMembers.filter(m => m.domaine === params.domaine);
-        }
-        
+        // Recherche
         if (params.search) {
             const searchLower = params.search.toLowerCase();
             filteredMembers = filteredMembers.filter(m => 
@@ -324,12 +248,11 @@ async function getAllMembers(params) {
     }
 }
 
-/**
- * Récupère un membre par son ID
- */
+// Récupérer un membre par ID
 async function getMemberById(id) {
     try {
-        const member = await findMemberById(id);
+        const members = await readData();
+        const member = members.find(m => m.id === id);
         
         if (!member) {
             return {
@@ -363,32 +286,27 @@ async function getMemberById(id) {
     }
 }
 
-/**
- * Met à jour le statut d'un membre
- */
-async function updateMemberStatus(id, data) {
-    const { statut, commentaire } = data;
-    
-    if (!['en_attente', 'accepte', 'refuse'].includes(statut)) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'Statut invalide'
-            })
-        };
-    }
-    
+// Mettre à jour le statut d'un membre
+async function updateMemberStatus(event, id) {
     try {
-        // ICI : Mise à jour dans votre système de stockage
-        const updated = await updateMemberInStorage(id, { 
-            statut: statut,
-            date_maj: new Date().toISOString(),
-            commentaire_admin: commentaire || ''
-        });
+        const data = JSON.parse(event.body || '{}');
+        const { statut, commentaire } = data;
         
-        if (!updated) {
+        if (!['en_attente', 'accepte', 'refuse'].includes(statut)) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Statut invalide'
+                })
+            };
+        }
+        
+        const members = await readData();
+        const index = members.findIndex(m => m.id === id);
+        
+        if (index === -1) {
             return {
                 statusCode: 404,
                 headers,
@@ -399,8 +317,13 @@ async function updateMemberStatus(id, data) {
             };
         }
         
-        // Envoyer un email de notification
-        await sendStatusNotificationEmail(id, statut, commentaire);
+        members[index].statut = statut;
+        members[index].date_maj = new Date().toISOString();
+        if (commentaire) {
+            members[index].commentaire_admin = commentaire;
+        }
+        
+        await writeData(members);
         
         return {
             statusCode: 200,
@@ -424,357 +347,47 @@ async function updateMemberStatus(id, data) {
     }
 }
 
-/**
- * Statistiques
- */
-async function getStats() {
+// Connexion admin
+async function adminLogin(event) {
     try {
-        const members = await fetchAllFromStorage({});
+        const data = JSON.parse(event.body || '{}');
+        const { password } = data;
         
-        const stats = {
-            total: members.length,
-            en_attente: members.filter(m => m.statut === 'en_attente').length,
-            accepte: members.filter(m => m.statut === 'accepte').length,
-            refuse: members.filter(m => m.statut === 'refuse').length,
-            par_domaine: {},
-            par_mois: {},
-            newsletter: members.filter(m => m.newsletter).length
-        };
+        // La clé d'accès que vous avez fournie
+        const ADMIN_KEY = '32015labmath@2026';
         
-        // Statistiques par domaine
-        members.forEach(m => {
-            const domaine = m.domaine || 'non_spécifié';
-            stats.par_domaine[domaine] = (stats.par_domaine[domaine] || 0) + 1;
-        });
-        
-        // Statistiques par mois
-        members.forEach(m => {
-            if (m.date_soumission) {
-                const mois = m.date_soumission.substring(0, 7); // YYYY-MM
-                stats.par_mois[mois] = (stats.par_mois[mois] || 0) + 1;
-            }
-        });
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                success: true,
-                data: stats
-            })
-        };
-        
-    } catch (error) {
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'Erreur lors du calcul des statistiques'
-            })
-        };
-    }
-}
-
-/**
- * Export CSV
- */
-async function exportMembers(format = 'csv') {
-    try {
-        const members = await fetchAllFromStorage({});
-        
-        if (format === 'csv') {
-            // Créer le CSV
-            const headers = ['ID', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Titre', 'Domaine', 'Statut', 'Date'];
-            const csvRows = [];
-            
-            csvRows.push(headers.join(','));
-            
-            members.forEach(m => {
-                const row = [
-                    m.id,
-                    `"${m.prenom}"`,
-                    `"${m.nom}"`,
-                    `"${m.email}"`,
-                    `"${m.telephone}"`,
-                    `"${m.titre}"`,
-                    m.domaine,
-                    m.statut,
-                    m.date_soumission ? m.date_soumission.substring(0, 10) : ''
-                ];
-                csvRows.push(row.join(','));
-            });
-            
-            const csv = csvRows.join('\n');
+        if (password === ADMIN_KEY) {
+            // Générer un token simple
+            const token = crypto.randomBytes(32).toString('hex');
             
             return {
                 statusCode: 200,
-                headers: {
-                    ...headers,
-                    'Content-Type': 'text/csv',
-                    'Content-Disposition': 'attachment; filename=members_export.csv'
-                },
-                body: csv
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'Connexion réussie',
+                    token: token,
+                    expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                })
+            };
+        } else {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Clé d\'accès invalide'
+                })
             };
         }
-        
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'Format non supporté'
-            })
-        };
-        
     } catch (error) {
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 success: false,
-                error: 'Erreur lors de l\'export'
+                error: 'Erreur lors de la connexion'
             })
         };
     }
-}
-
-/**
- * Connexion admin
- */
-async function adminLogin(data) {
-    const { username, password } = data;
-    
-    // À remplacer par votre système d'authentification
-    const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'LabMath2025!';
-    
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        // Générer un token simple (en production, utilisez JWT)
-        const token = crypto.randomBytes(32).toString('hex');
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                success: true,
-                message: 'Connexion réussie',
-                token: token,
-                expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-            })
-        };
-    } else {
-        return {
-            statusCode: 401,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'Identifiants invalides'
-            })
-        };
-    }
-}
-
-/**
- * Vérification d'email (pour éviter les doublons)
- */
-async function verifyEmail(data) {
-    const { email } = data;
-    
-    try {
-        const members = await fetchAllFromStorage({});
-        const existing = members.find(m => m.email.toLowerCase() === email.toLowerCase());
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-                success: true,
-                exists: !!existing,
-                message: existing ? 'Cet email est déjà utilisé' : 'Email disponible'
-            })
-        };
-        
-    } catch (error) {
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                success: false,
-                error: 'Erreur lors de la vérification'
-            })
-        };
-    }
-}
-
-// ==================== FONCTIONS DE STOCKAGE ====================
-
-/**
- * Sauvegarde dans Airtable (recommandé)
- */
-async function saveToAirtable(member) {
-    const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-    const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-    const AIRTABLE_TABLE = process.env.AIRTABLE_TABLE || 'Adhésions';
-    
-    if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-        console.warn('Airtable non configuré, utilisation du stockage local');
-        return await saveToLocalJSON(member);
-    }
-    
-    const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            records: [{
-                fields: {
-                    'ID': member.id,
-                    'Prénom': member.prenom,
-                    'Nom': member.nom,
-                    'Email': member.email,
-                    'Téléphone': member.telephone,
-                    'Titre': member.titre,
-                    'Domaine': member.domaine,
-                    'Motivation': member.motivation,
-                    'Statut': member.statut,
-                    'Date': member.date_soumission.split('T')[0],
-                    'Newsletter': member.newsletter ? 'Oui' : 'Non'
-                }
-            }]
-        })
-    });
-    
-    return await response.json();
-}
-
-/**
- * Sauvegarde dans un fichier JSON local (pour développement)
- */
-async function saveToLocalJSON(member) {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const filePath = path.resolve(__dirname, '../../data.json');
-    
-    try {
-        let data = [];
-        try {
-            const content = await fs.readFile(filePath, 'utf8');
-            data = JSON.parse(content);
-        } catch (e) {
-            // Fichier n'existe pas encore
-        }
-        
-        data.push(member);
-        await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-        
-        return { success: true, id: member.id };
-    } catch (error) {
-        console.error('Erreur sauvegarde locale:', error);
-        throw error;
-    }
-}
-
-/**
- * Récupère tous les membres depuis le stockage
- */
-async function fetchAllFromStorage(params = {}) {
-    // À adapter selon votre système de stockage
-    try {
-        const fs = require('fs').promises;
-        const path = require('path');
-        
-        const filePath = path.resolve(__dirname, '../../data.json');
-        const content = await fs.readFile(filePath, 'utf8');
-        return JSON.parse(content);
-    } catch (e) {
-        return [];
-    }
-}
-
-/**
- * Trouve un membre par son ID
- */
-async function findMemberById(id) {
-    const members = await fetchAllFromStorage();
-    return members.find(m => m.id === id);
-}
-
-/**
- * Met à jour un membre dans le stockage
- */
-async function updateMemberInStorage(id, updates) {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
-    const filePath = path.resolve(__dirname, '../../data.json');
-    let members = await fetchAllFromStorage();
-    let found = false;
-    
-    members = members.map(m => {
-        if (m.id === id) {
-            found = true;
-            return { ...m, ...updates };
-        }
-        return m;
-    });
-    
-    if (found) {
-        await fs.writeFile(filePath, JSON.stringify(members, null, 2));
-    }
-    
-    return found;
-}
-
-// ==================== FONCTIONS EMAIL ====================
-
-/**
- * Envoie un email de confirmation
- */
-async function sendConfirmationEmail(member) {
-    // À implémenter avec SendGrid, Mailgun, etc.
-    console.log(`Email de confirmation envoyé à ${member.email}`);
-    return true;
-}
-
-/**
- * Envoie une notification de changement de statut
- */
-async function sendStatusNotificationEmail(id, statut, commentaire) {
-    const member = await findMemberById(id);
-    if (!member) return false;
-    
-    console.log(`Notification de statut envoyée à ${member.email}: ${statut}`);
-    return true;
-}
-
-// ==================== FONCTIONS UTILITAIRES ====================
-
-/**
- * Valide un email
- */
-function isValidEmail(email) {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-}
-
-/**
- * Génère un ID unique
- */
-function generateId() {
-    return 'MEM_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
-}
-
-/**
- * Formate une date
- */
-function formatDate(date) {
-    return new Date(date).toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
 }
