@@ -3,6 +3,10 @@
   functions = "netlify/functions"
   publish = "."
 
+[dev]
+  functions = "netlify/functions"
+  publish = "."
+
 [[redirects]]
   from = "/"
   to = "/index.html"
@@ -10,7 +14,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/membership/:splat"
+  to = "/.netlify/functions/:splat"
   status = 200
 
 [[redirects]]
