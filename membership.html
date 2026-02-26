@@ -1,3 +1,4 @@
+<!-- membership.html -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -650,9 +651,7 @@
             
             <ul class="nav-menu">
                 <li><a href="index.html" class="nav-link">Accueil</a></li>
-                <li><a href="about.html" class="nav-link">À propos</a></li>
                 <li><a href="membership.html" class="nav-link active">Adhésion</a></li>
-                <li><a href="contact.html" class="nav-link">Contact</a></li>
                 <li><a href="admin-memberships.html" class="nav-link"><i class="fas fa-lock"></i> Admin</a></li>
             </ul>
         </div>
@@ -768,13 +767,13 @@
                         <label><i class="fas fa-flask"></i> Domaine d'expertise *</label>
                         <select class="form-control" id="domaine" required>
                             <option value="">Sélectionnez un domaine</option>
-                            <option value="ia">Intelligence Artificielle</option>
-                            <option value="data">Data Science</option>
-                            <option value="geospatial">Géospatial</option>
-                            <option value="robotique">Robotique</option>
-                            <option value="statistiques">Statistiques</option>
-                            <option value="maths_fond">Mathématiques fondamentales</option>
-                            <option value="autre">Autre</option>
+                            <option value="Intelligence Artificielle">Intelligence Artificielle</option>
+                            <option value="Data Science">Data Science</option>
+                            <option value="Géospatial">Géospatial</option>
+                            <option value="Robotique">Robotique</option>
+                            <option value="Statistiques">Statistiques</option>
+                            <option value="Mathématiques fondamentales">Mathématiques fondamentales</option>
+                            <option value="Autre">Autre</option>
                         </select>
                         <div class="error-message" id="error-domaine">Ce champ est requis</div>
                     </div>
@@ -941,7 +940,7 @@
                     <ul>
                         <li><a href="index.html">Accueil</a></li>
                         <li><a href="membership.html">Adhésion</a></li>
-                        <li><a href="contact.html">Contact</a></li>
+                        <li><a href="admin-memberships.html">Admin</a></li>
                     </ul>
                 </div>
                 
@@ -996,7 +995,7 @@
             if (checkCharte && checkCharte.checked) filled++;
 
             const total = inputs.length + 3;
-            const percentage = (filled / total) * 100;
+            const percentage = total > 0 ? (filled / total) * 100 : 0;
             if (progressFill) {
                 progressFill.style.width = percentage + '%';
             }
@@ -1024,6 +1023,12 @@
             return re.test(email);
         }
 
+        // Validation téléphone (optionnelle mais recommandée)
+        function validatePhone(phone) {
+            const re = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,4}[-\s.]?[0-9]{1,4}$/;
+            return re.test(phone);
+        }
+
         // Gestionnaires d'événements
         if (checkLu) checkLu.addEventListener('change', validateCheckboxes);
         if (checkConf) checkConf.addEventListener('change', validateCheckboxes);
@@ -1040,11 +1045,29 @@
             });
         });
 
+        // Validation spécifique pour l'email
+        const emailField = document.getElementById('email');
+        if (emailField) {
+            emailField.addEventListener('blur', function() {
+                if (this.value && !validateEmail(this.value)) {
+                    this.classList.add('error');
+                    const errorEmail = document.getElementById('error-email');
+                    if (errorEmail) errorEmail.classList.add('show');
+                }
+            });
+        }
+
         // Gestionnaire de soumission
         const form = document.getElementById('membershipForm');
         if (form) {
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+
+                // Désactiver le bouton pendant l'envoi
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+                submitBtn.disabled = true;
 
                 // Validation finale
                 let isValid = true;
@@ -1056,7 +1079,7 @@
 
                 // Validation email spécifique
                 const email = document.getElementById('email');
-                if (email && !validateEmail(email.value)) {
+                if (email && email.value && !validateEmail(email.value)) {
                     email.classList.add('error');
                     const errorEmail = document.getElementById('error-email');
                     if (errorEmail) errorEmail.classList.add('show');
@@ -1066,11 +1089,14 @@
                 if (!isValid) {
                     const errorMsg = document.getElementById('errorMessage');
                     if (errorMsg) {
+                        errorMsg.innerHTML = '<i class="fas fa-times-circle"></i> Veuillez remplir tous les champs requis correctement.';
                         errorMsg.classList.add('show');
                         setTimeout(() => {
                             errorMsg.classList.remove('show');
                         }, 3000);
                     }
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                     return;
                 }
 
@@ -1096,42 +1122,56 @@
                 };
 
                 try {
-                    // Simulation d'envoi (à remplacer par votre API)
-                    console.log('Données soumises:', formData);
-                    
-                    // Simuler un délai réseau
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Afficher le message de succès
-                    const successMsg = document.getElementById('successMessage');
-                    if (successMsg) {
-                        successMsg.classList.add('show');
-                    }
-                    
-                    // Réinitialiser le formulaire
-                    if (form) form.reset();
-                    if (progressFill) progressFill.style.width = '0%';
-                    
-                    // Désactiver les checkboxes
-                    if (checkLu) checkLu.checked = false;
-                    if (checkConf) checkConf.checked = false;
-                    if (checkCharte) checkCharte.checked = false;
-                    validateCheckboxes();
+                    // Appel réel à l'API Netlify Function
+                    const response = await fetch('/.netlify/functions/membership/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
 
-                    // Cacher le message après 5 secondes
-                    setTimeout(() => {
-                        if (successMsg) successMsg.classList.remove('show');
-                    }, 5000);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Afficher le message de succès
+                        const successMsg = document.getElementById('successMessage');
+                        if (successMsg) {
+                            successMsg.innerHTML = `<i class="fas fa-check-circle"></i> ${result.message}`;
+                            successMsg.classList.add('show');
+                        }
+                        
+                        // Réinitialiser le formulaire
+                        if (form) form.reset();
+                        if (progressFill) progressFill.style.width = '0%';
+                        
+                        // Désactiver les checkboxes
+                        if (checkLu) checkLu.checked = false;
+                        if (checkConf) checkConf.checked = false;
+                        if (checkCharte) checkCharte.checked = false;
+                        validateCheckboxes();
+
+                        // Cacher le message après 5 secondes
+                        setTimeout(() => {
+                            if (successMsg) successMsg.classList.remove('show');
+                        }, 5000);
+                    } else {
+                        throw new Error(result.error || 'Erreur lors de l\'envoi');
+                    }
 
                 } catch (error) {
                     console.error('Erreur:', error);
                     const errorMsg = document.getElementById('errorMessage');
                     if (errorMsg) {
+                        errorMsg.innerHTML = `<i class="fas fa-times-circle"></i> ${error.message}`;
                         errorMsg.classList.add('show');
                         setTimeout(() => {
                             errorMsg.classList.remove('show');
                         }, 3000);
                     }
+                } finally {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
                 }
             });
         }
