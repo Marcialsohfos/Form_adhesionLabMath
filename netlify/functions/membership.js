@@ -11,8 +11,8 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Chemin du fichier de données
-const DATA_FILE_PATH = path.resolve(__dirname, 'data.json');
+// Chemin du fichier de données - Version corrigée avec chemin absolu
+const DATA_FILE_PATH = path.join('/tmp', 'data.json'); // Utilisation du dossier temporaire sur Netlify
 
 // Fonction pour lire les données
 async function readData() {
@@ -21,13 +21,20 @@ async function readData() {
         return JSON.parse(data);
     } catch (error) {
         // Si le fichier n'existe pas, retourner un tableau vide
+        console.log('Fichier non trouvé, création d\'un nouveau tableau');
         return [];
     }
 }
 
 // Fonction pour écrire les données
 async function writeData(data) {
-    await fs.writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2));
+    try {
+        await fs.writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2));
+        console.log('Données sauvegardées avec succès');
+    } catch (error) {
+        console.error('Erreur écriture fichier:', error);
+        throw error;
+    }
 }
 
 // Gestionnaire principal
@@ -43,6 +50,7 @@ exports.handler = async (event) => {
 
     try {
         const path = event.path.replace('/.netlify/functions/membership', '');
+        console.log('Méthode:', event.httpMethod, 'Path:', path);
         
         // Routes
         if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit/')) {
@@ -73,7 +81,7 @@ exports.handler = async (event) => {
             body: JSON.stringify({ error: 'Route non trouvée' })
         };
     } catch (error) {
-        console.error('Erreur:', error);
+        console.error('Erreur globale:', error);
         return {
             statusCode: 500,
             headers,
@@ -90,6 +98,7 @@ exports.handler = async (event) => {
 async function submitMembership(event) {
     try {
         const data = JSON.parse(event.body || '{}');
+        console.log('Données reçues:', data);
         
         // Validation des données requises
         const required = ['prenom', 'nom', 'email', 'telephone', 'titre', 'domaine', 'motivation'];
@@ -123,7 +132,7 @@ async function submitMembership(event) {
         const members = await readData();
 
         // Vérifier si l'email existe déjà
-        const emailExists = members.some(m => m.email.toLowerCase() === data.email.toLowerCase());
+        const emailExists = members.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
         if (emailExists) {
             return {
                 statusCode: 400,
@@ -159,9 +168,7 @@ async function submitMembership(event) {
             liens: data.liens || '',
             newsletter: data.newsletter || false,
             date_soumission: new Date().toISOString(),
-            statut: 'en_attente',
-            ip: event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown',
-            userAgent: event.headers['user-agent'] || 'unknown'
+            statut: 'en_attente'
         };
 
         // Ajouter le nouveau membre
@@ -169,9 +176,7 @@ async function submitMembership(event) {
         
         // Sauvegarder dans le fichier
         await writeData(members);
-
-        // Journaliser
-        console.log(`Nouvelle adhésion: ${newMember.prenom} ${newMember.nom} - ${newMember.email}`);
+        console.log('Membre ajouté avec succès:', newMember.email);
 
         return {
             statusCode: 200,
@@ -212,9 +217,9 @@ async function getAllMembers(event) {
         if (params.search) {
             const searchLower = params.search.toLowerCase();
             filteredMembers = filteredMembers.filter(m => 
-                m.prenom.toLowerCase().includes(searchLower) ||
-                m.nom.toLowerCase().includes(searchLower) ||
-                m.email.toLowerCase().includes(searchLower)
+                (m.prenom && m.prenom.toLowerCase().includes(searchLower)) ||
+                (m.nom && m.nom.toLowerCase().includes(searchLower)) ||
+                (m.email && m.email.toLowerCase().includes(searchLower))
             );
         }
         
@@ -237,6 +242,7 @@ async function getAllMembers(event) {
         };
         
     } catch (error) {
+        console.error('Erreur getAllMembers:', error);
         return {
             statusCode: 500,
             headers,
@@ -275,6 +281,7 @@ async function getMemberById(id) {
         };
         
     } catch (error) {
+        console.error('Erreur getMemberById:', error);
         return {
             statusCode: 500,
             headers,
@@ -336,6 +343,7 @@ async function updateMemberStatus(event, id) {
         };
         
     } catch (error) {
+        console.error('Erreur updateMemberStatus:', error);
         return {
             statusCode: 500,
             headers,
@@ -381,6 +389,7 @@ async function adminLogin(event) {
             };
         }
     } catch (error) {
+        console.error('Erreur adminLogin:', error);
         return {
             statusCode: 500,
             headers,
