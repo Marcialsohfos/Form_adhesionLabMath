@@ -11,31 +11,71 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Chemin du fichier de données - Version corrigée avec chemin absolu
-const DATA_FILE_PATH = path.join('/tmp', 'data.json'); // Utilisation du dossier temporaire sur Netlify
+// Utiliser un stockage persistant - plusieurs options :
+// OPTION 1 : Utiliser le dossier /tmp (mais moins fiable)
+// OPTION 2 : Utiliser une variable globale (ne persiste pas entre les re-déploiements)
+// OPTION 3 : Utiliser un service externe (recommandé pour la production)
+
+// Pour cette correction, nous allons utiliser une combinaison de :
+// - Stockage en mémoire (global) pour la session courante
+// - Fichier dans /tmp pour persistance entre les appels de la même instance
+// - Note : En production, envisagez MongoDB Atlas, Firebase ou Airtable
+
+// Stockage en mémoire globale (persiste tant que l'instance est active)
+let inMemoryDB = [];
+
+// Chemin du fichier de données
+const DATA_FILE_PATH = path.join('/tmp', 'labmath-members.json');
+
+// Fonction pour initialiser la base de données
+async function initDB() {
+    try {
+        // Essayer de lire depuis le fichier
+        const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
+        inMemoryDB = JSON.parse(data);
+        console.log(`Base de données chargée depuis le fichier: ${inMemoryDB.length} membres`);
+    } catch (error) {
+        console.log('Création d\'une nouvelle base de données');
+        // Données initiales de démonstration (optionnel)
+        inMemoryDB = [];
+        await saveToFile();
+    }
+}
+
+// Sauvegarder dans le fichier
+async function saveToFile() {
+    try {
+        await fs.writeFile(DATA_FILE_PATH, JSON.stringify(inMemoryDB, null, 2));
+        console.log('Données sauvegardées dans le fichier');
+    } catch (error) {
+        console.error('Erreur sauvegarde fichier:', error);
+        // Ne pas bloquer l'application si l'écriture échoue
+    }
+}
 
 // Fonction pour lire les données
 async function readData() {
-    try {
-        const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
-        return JSON.parse(data);
-    } catch (error) {
-        // Si le fichier n'existe pas, retourner un tableau vide
-        console.log('Fichier non trouvé, création d\'un nouveau tableau');
-        return [];
+    // S'assurer que inMemoryDB est initialisé
+    if (inMemoryDB.length === 0) {
+        try {
+            const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
+            inMemoryDB = JSON.parse(data);
+        } catch (error) {
+            // Pas de fichier ou fichier vide
+            inMemoryDB = [];
+        }
     }
+    return inMemoryDB;
 }
 
 // Fonction pour écrire les données
 async function writeData(data) {
-    try {
-        await fs.writeFile(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-        console.log('Données sauvegardées avec succès');
-    } catch (error) {
-        console.error('Erreur écriture fichier:', error);
-        throw error;
-    }
+    inMemoryDB = data;
+    await saveToFile();
 }
+
+// Initialiser au démarrage
+initDB().catch(console.error);
 
 // Gestionnaire principal
 exports.handler = async (event) => {
@@ -50,7 +90,7 @@ exports.handler = async (event) => {
 
     try {
         const path = event.path.replace('/.netlify/functions/membership', '');
-        console.log('Méthode:', event.httpMethod, 'Path:', path);
+        console.log('Méthode:', event.httpMethod, 'Path:', path, 'Body:', event.body);
         
         // Routes
         if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit/')) {
@@ -75,10 +115,28 @@ exports.handler = async (event) => {
             return await updateMemberStatus(event, id);
         }
 
+        // Route de test pour vérifier que la fonction fonctionne
+        if (event.httpMethod === 'GET' && (path === '/test' || path === '/test/')) {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'La fonction membership est opérationnelle',
+                    timestamp: new Date().toISOString(),
+                    membersCount: inMemoryDB.length
+                })
+            };
+        }
+
         return {
             statusCode: 404,
             headers,
-            body: JSON.stringify({ error: 'Route non trouvée' })
+            body: JSON.stringify({ 
+                success: false,
+                error: 'Route non trouvée',
+                path: path 
+            })
         };
     } catch (error) {
         console.error('Erreur globale:', error);
@@ -98,7 +156,7 @@ exports.handler = async (event) => {
 async function submitMembership(event) {
     try {
         const data = JSON.parse(event.body || '{}');
-        console.log('Données reçues:', data);
+        console.log('Données reçues:', JSON.stringify(data, null, 2));
         
         // Validation des données requises
         const required = ['prenom', 'nom', 'email', 'telephone', 'titre', 'domaine', 'motivation'];
@@ -176,7 +234,7 @@ async function submitMembership(event) {
         
         // Sauvegarder dans le fichier
         await writeData(members);
-        console.log('Membre ajouté avec succès:', newMember.email);
+        console.log('Membre ajouté avec succès:', newMember.email, 'ID:', newMember.id);
 
         return {
             statusCode: 200,
@@ -195,7 +253,8 @@ async function submitMembership(event) {
             headers,
             body: JSON.stringify({
                 success: false,
-                error: 'Erreur lors de l\'enregistrement. Veuillez réessayer.'
+                error: 'Erreur lors de l\'enregistrement. Veuillez réessayer.',
+                details: error.message
             })
         };
     }
@@ -248,7 +307,8 @@ async function getAllMembers(event) {
             headers,
             body: JSON.stringify({
                 success: false,
-                error: 'Erreur lors de la récupération des membres'
+                error: 'Erreur lors de la récupération des membres',
+                details: error.message
             })
         };
     }
@@ -361,7 +421,7 @@ async function adminLogin(event) {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
         
-        // La clé d'accès que vous avez fournie
+        // La clé d'accès
         const ADMIN_KEY = '32015labmath@2026';
         
         if (password === ADMIN_KEY) {
