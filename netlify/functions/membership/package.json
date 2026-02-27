@@ -1,0 +1,9 @@
+{
+  "name": "membership-function",
+  "version": "1.0.0",
+  "description": "Netlify function for membership management",
+  "main": "membership.js",
+  "dependencies": {
+    "crypto": "^1.0.1"
+  }
+}
