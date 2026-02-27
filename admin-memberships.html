@@ -6,6 +6,7 @@
     <title>Lab_Math Admin - Gestion des adhésions</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Styles existants - gardez-les identiques */
         :root {
             --primary: #00ffff;
             --secondary: #b829ff;
@@ -317,6 +318,21 @@
             color: var(--text-dim);
         }
 
+        .debug-panel {
+            background: rgba(255, 42, 109, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .debug-panel.show {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .admin-container {
                 padding: 1rem;
@@ -355,6 +371,10 @@
         <div id="loginError" class="error-message">
             <i class="fas fa-exclamation-circle"></i> Clé d'accès incorrecte
         </div>
+        <div class="debug-panel" id="debugPanel">
+            <strong>Debug Info:</strong><br>
+            <span id="debugInfo"></span>
+        </div>
     </div>
 
     <div id="adminContent" style="display: none;">
@@ -362,6 +382,9 @@
             <div class="admin-header">
                 <h1><span class="gradient-text">Gestion des adhésions</span></h1>
                 <p style="color: var(--text-dim);">Administration des demandes d'adhésion à Lab_Math</p>
+                <button class="filter-btn" onclick="refreshData()" style="margin-top: 1rem;">
+                    <i class="fas fa-sync-alt"></i> Rafraîchir
+                </button>
             </div>
             
             <div class="admin-members">
@@ -440,7 +463,28 @@
     <script>
         let members = [];
         let currentFilter = 'all';
-        let adminToken = null;
+        let adminToken = localStorage.getItem('adminToken');
+        
+        // Vérifier si déjà connecté
+        if (adminToken) {
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+            loadMembers();
+        }
+        
+        // Fonction de debug
+        function showDebug(message) {
+            const debugPanel = document.getElementById('debugPanel');
+            const debugInfo = document.getElementById('debugInfo');
+            if (debugPanel && debugInfo) {
+                debugInfo.innerHTML = message;
+                debugPanel.classList.add('show');
+                setTimeout(() => {
+                    debugPanel.classList.remove('show');
+                }, 5000);
+            }
+            console.log('Debug:', message);
+        }
         
         // Fonction de connexion admin
         async function loginAdmin() {
@@ -454,6 +498,8 @@
             }
             
             try {
+                showDebug('Tentative de connexion...');
+                
                 const response = await fetch('/.netlify/functions/membership/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -461,31 +507,43 @@
                 });
                 
                 const result = await response.json();
+                showDebug(`Réponse: ${JSON.stringify(result)}`);
                 
                 if (result.success) {
                     adminToken = result.token;
+                    localStorage.setItem('adminToken', adminToken);
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
                     loadMembers();
                     return true;
                 } else {
-                    loginError.textContent = 'Clé d\'accès incorrecte';
+                    loginError.textContent = result.error || 'Clé d\'accès incorrecte';
                     loginError.classList.add('show');
                     return false;
                 }
             } catch (error) {
                 console.error('Erreur de connexion:', error);
-                loginError.textContent = 'Erreur de connexion au serveur';
+                loginError.textContent = 'Erreur de connexion au serveur: ' + error.message;
                 loginError.classList.add('show');
+                showDebug('Erreur: ' + error.message);
                 return false;
             }
+        }
+        
+        // Rafraîchir les données
+        function refreshData() {
+            loadMembers();
         }
         
         // Charger les données depuis l'API
         async function loadMembers() {
             try {
+                showDebug('Chargement des membres...');
+                
                 const response = await fetch('/.netlify/functions/membership/members');
                 const result = await response.json();
+                
+                showDebug(`Réponse: ${JSON.stringify(result)}`);
                 
                 if (result.success) {
                     members = result.data || [];
@@ -496,7 +554,7 @@
                     document.getElementById('membersTableBody').innerHTML = `
                         <tr>
                             <td colspan="8" class="error-message show">
-                                <i class="fas fa-exclamation-circle"></i> Erreur de chargement
+                                <i class="fas fa-exclamation-circle"></i> Erreur de chargement: ${result.error}
                             </td>
                         </tr>
                     `;
@@ -506,10 +564,11 @@
                 document.getElementById('membersTableBody').innerHTML = `
                     <tr>
                         <td colspan="8" class="error-message show">
-                            <i class="fas fa-exclamation-circle"></i> Impossible de charger les données
+                            <i class="fas fa-exclamation-circle"></i> Impossible de charger les données: ${error.message}
                         </td>
                     </tr>
                 `;
+                showDebug('Erreur chargement: ' + error.message);
             }
         }
         
@@ -538,7 +597,7 @@
             filteredMembers.forEach(member => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${member.id || 'N/A'}</td>
+                    <td>${member.id ? member.id.substring(0, 8) + '...' : 'N/A'}</td>
                     <td>${member.prenom || ''} ${member.nom || ''}</td>
                     <td>${member.email || ''}</td>
                     <td>${member.telephone || ''}</td>
@@ -628,6 +687,8 @@
             }
             
             try {
+                showDebug(`Mise à jour statut: ${id} -> ${newStatus}`);
+                
                 const response = await fetch(`/.netlify/functions/membership/update/${id}`, {
                     method: 'PUT',
                     headers: {
@@ -637,6 +698,7 @@
                 });
                 
                 const result = await response.json();
+                showDebug(`Réponse: ${JSON.stringify(result)}`);
                 
                 if (result.success) {
                     await loadMembers();
@@ -645,7 +707,8 @@
                 }
             } catch (error) {
                 console.error('Erreur:', error);
-                alert('Erreur lors de la mise à jour');
+                alert('Erreur lors de la mise à jour: ' + error.message);
+                showDebug('Erreur: ' + error.message);
             }
         }
         
@@ -678,9 +741,6 @@
                 closeModal();
             }
         }
-        
-        // Vérifier si déjà connecté (optionnel)
-        // Note: Pour une vraie persistance, utilisez localStorage avec le token
     </script>
 </body>
 </html>
