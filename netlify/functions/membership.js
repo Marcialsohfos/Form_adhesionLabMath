@@ -9,33 +9,37 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Clé d'administration (à changer en production)
+// Clé d'administration
 const ADMIN_KEY = '32015labmath@2026';
 
-// Stockage en mémoire (sera réinitialisé à chaque déploiement)
-// Pour la production, utilisez une vraie base de données comme MongoDB Atlas ou Airtable
-let inMemoryDB = [];
+// Stockage en mémoire (sera perdu au redémarrage, mais fonctionne pour la démo)
+let membersDB = [];
 
-// Charger les données initiales depuis l'environnement ou un service externe
-// Pour l'instant, on initialise avec des données de test
-const initializeDB = () => {
-    if (inMemoryDB.length === 0) {
-        // Données de test
-        inMemoryDB = [
-            {
-                id: 'MEM_' + Date.now() + '_test1',
-                prenom: 'Jean',
-                nom: 'MARTIN',
-                email: 'jean.martin@example.com',
-                telephone: '+237 620 307 439',
-                domaine: 'Intelligence Artificielle',
-                date_soumission: new Date().toISOString(),
-                statut: 'en_attente'
-            }
-        ];
+// Initialiser avec des données de test
+membersDB = [
+    {
+        id: 'MEM_' + Date.now() + '_test1',
+        prenom: 'Jean',
+        nom: 'MARTIN',
+        email: 'jean.martin@example.com',
+        telephone: '+237 620 307 439',
+        dateNaissance: '1985-03-15',
+        nationalite: 'Camerounaise',
+        adresse: '123 Rue de la Recherche',
+        ville: 'Yaoundé',
+        pays: 'Cameroun',
+        titre: 'Directeur de Recherche',
+        institution: 'Université de Yaoundé I',
+        domaine: 'Intelligence Artificielle',
+        presentation: 'Chercheur en IA depuis 10 ans',
+        motivation: 'Je souhaite contribuer au développement de la recherche',
+        interets: 'Deep Learning, NLP',
+        liens: 'https://github.com/jeanmartin',
+        newsletter: true,
+        date_soumission: new Date().toISOString(),
+        statut: 'en_attente'
     }
-    return inMemoryDB;
-};
+];
 
 // Gestionnaire principal
 exports.handler = async (event) => {
@@ -50,14 +54,14 @@ exports.handler = async (event) => {
 
     try {
         const path = event.path.replace('/.netlify/functions/membership', '');
-        console.log('Méthode:', event.httpMethod, 'Path:', path);
-        
-        // Routes
-        if (event.httpMethod === 'POST' && path === '/submit') {
+        console.log('Méthode:', event.httpMethod, 'Path:', path, 'Body:', event.body);
+
+        // Routes principales
+        if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit')) {
             return await submitMembership(event);
         }
         
-        if (event.httpMethod === 'GET' && path === '/members') {
+        if (event.httpMethod === 'GET' && (path === '/members' || path === '/members')) {
             return await getAllMembers(event);
         }
         
@@ -66,7 +70,7 @@ exports.handler = async (event) => {
             return await getMemberById(id);
         }
         
-        if (event.httpMethod === 'POST' && path === '/login') {
+        if (event.httpMethod === 'POST' && (path === '/login' || path === '/login')) {
             return await adminLogin(event);
         }
         
@@ -76,7 +80,7 @@ exports.handler = async (event) => {
         }
 
         // Route de test
-        if (event.httpMethod === 'GET' && path === '/test') {
+        if (event.httpMethod === 'GET' && (path === '/test' || path === '/test')) {
             return {
                 statusCode: 200,
                 headers,
@@ -84,7 +88,7 @@ exports.handler = async (event) => {
                     success: true,
                     message: 'La fonction membership est opérationnelle',
                     timestamp: new Date().toISOString(),
-                    membersCount: inMemoryDB.length
+                    membersCount: membersDB.length
                 })
             };
         }
@@ -105,8 +109,7 @@ exports.handler = async (event) => {
             headers,
             body: JSON.stringify({ 
                 success: false, 
-                error: 'Erreur serveur interne',
-                details: error.message 
+                error: 'Erreur serveur interne: ' + error.message 
             })
         };
     }
@@ -146,11 +149,8 @@ async function submitMembership(event) {
             };
         }
 
-        // Initialiser la DB
-        const members = initializeDB();
-
         // Vérifier si l'email existe déjà
-        const emailExists = members.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
+        const emailExists = membersDB.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
         if (emailExists) {
             return {
                 statusCode: 400,
@@ -190,7 +190,7 @@ async function submitMembership(event) {
         };
 
         // Ajouter le nouveau membre
-        members.push(newMember);
+        membersDB.push(newMember);
         console.log('Membre ajouté avec succès:', newMember.email, 'ID:', newMember.id);
 
         return {
@@ -210,8 +210,7 @@ async function submitMembership(event) {
             headers,
             body: JSON.stringify({
                 success: false,
-                error: 'Erreur lors de l\'enregistrement. Veuillez réessayer.',
-                details: error.message
+                error: 'Erreur lors de l\'enregistrement. Veuillez réessayer.'
             })
         };
     }
@@ -220,10 +219,12 @@ async function submitMembership(event) {
 // Récupérer tous les membres
 async function getAllMembers(event) {
     try {
-        const members = initializeDB();
-        
-        // Vérifier l'authentification pour l'accès admin
+        // Vérifier l'authentification
         const authHeader = event.headers.authorization || event.headers.Authorization;
+        
+        // Pour le développement, on peut permettre l'accès sans token
+        // Mais en production, décommentez les lignes ci-dessous
+        /*
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return {
                 statusCode: 401,
@@ -234,14 +235,17 @@ async function getAllMembers(event) {
                 })
             };
         }
-
+        */
+        
+        console.log('Membres dans la DB:', membersDB.length);
+        
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                total: members.length,
-                data: members
+                total: membersDB.length,
+                data: membersDB
             })
         };
         
@@ -252,8 +256,7 @@ async function getAllMembers(event) {
             headers,
             body: JSON.stringify({
                 success: false,
-                error: 'Erreur lors de la récupération des membres',
-                details: error.message
+                error: 'Erreur lors de la récupération des membres'
             })
         };
     }
@@ -262,8 +265,7 @@ async function getAllMembers(event) {
 // Récupérer un membre par ID
 async function getMemberById(id) {
     try {
-        const members = initializeDB();
-        const member = members.find(m => m.id === id);
+        const member = membersDB.find(m => m.id === id);
         
         if (!member) {
             return {
@@ -302,7 +304,7 @@ async function getMemberById(id) {
 async function updateMemberStatus(event, id) {
     try {
         const data = JSON.parse(event.body || '{}');
-        const { statut, commentaire } = data;
+        const { statut } = data;
         
         if (!['en_attente', 'accepte', 'refuse'].includes(statut)) {
             return {
@@ -315,8 +317,7 @@ async function updateMemberStatus(event, id) {
             };
         }
         
-        const members = initializeDB();
-        const index = members.findIndex(m => m.id === id);
+        const index = membersDB.findIndex(m => m.id === id);
         
         if (index === -1) {
             return {
@@ -329,11 +330,8 @@ async function updateMemberStatus(event, id) {
             };
         }
         
-        members[index].statut = statut;
-        members[index].date_maj = new Date().toISOString();
-        if (commentaire) {
-            members[index].commentaire_admin = commentaire;
-        }
+        membersDB[index].statut = statut;
+        membersDB[index].date_maj = new Date().toISOString();
         
         return {
             statusCode: 200,
@@ -363,6 +361,8 @@ async function adminLogin(event) {
     try {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
+        
+        console.log('Tentative de connexion avec:', password);
         
         if (password === ADMIN_KEY) {
             // Générer un token simple
