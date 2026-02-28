@@ -1,6 +1,5 @@
-// netlify/functions/membership.js avec Supabase
+// netlify/functions/membership.js
 const crypto = require('crypto');
-const { createClient } = require('@supabase/supabase-js');
 
 // Configuration CORS
 const headers = {
@@ -10,19 +9,40 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Clé d'administration (pour l'authentification admin)
+// Clé d'administration
 const ADMIN_KEY = '32015labmath@2026';
+
+// Stockage des tokens valides (simplifié, en production utilisez JWT)
 const validTokens = new Set();
 
-// Configuration Supabase (à mettre dans les variables d'environnement Netlify)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // La clé service_role (sécure)
+// Stockage en mémoire
+let membersDB = [];
 
-// Initialisation du client Supabase avec la clé service (pour les opérations admin)
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Nom de la table
-const TABLE_NAME = 'adhesions';
+// Initialiser avec des données de test
+membersDB = [
+    {
+        id: 'MEM_' + Date.now() + '_test1',
+        prenom: 'Jean',
+        nom: 'MARTIN',
+        email: 'jean.martin@example.com',
+        telephone: '+237 620 307 439',
+        dateNaissance: '1985-03-15',
+        nationalite: 'Camerounaise',
+        adresse: '123 Rue de la Recherche',
+        ville: 'Yaoundé',
+        pays: 'Cameroun',
+        titre: 'Directeur de Recherche',
+        institution: 'Université de Yaoundé I',
+        domaine: 'Intelligence Artificielle',
+        presentation: 'Chercheur en IA depuis 10 ans',
+        motivation: 'Je souhaite contribuer au développement de la recherche',
+        interets: 'Deep Learning, NLP',
+        liens: 'https://github.com/jeanmartin',
+        newsletter: true,
+        date_soumission: new Date().toISOString(),
+        statut: 'en_attente'
+    }
+];
 
 // Gestionnaire principal
 exports.handler = async (event) => {
@@ -159,26 +179,9 @@ async function submitMembership(event) {
             };
         }
 
-        // Vérifier si l'email existe déjà dans Supabase
-        const { data: existingUser, error: checkError } = await supabase
-            .from(TABLE_NAME)
-            .select('email')
-            .eq('email', data.email.toLowerCase())
-            .maybeSingle();
-
-        if (checkError) {
-            console.error('Erreur vérification email:', checkError);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Erreur lors de la vérification'
-                })
-            };
-        }
-
-        if (existingUser) {
+        // Vérifier si l'email existe déjà
+        const emailExists = membersDB.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
+        if (emailExists) {
             return {
                 statusCode: 400,
                 headers,
@@ -189,47 +192,35 @@ async function submitMembership(event) {
             };
         }
 
-        // Préparer les données pour Supabase
-        const memberData = {
+        // Générer un ID unique
+        const id = 'MEM_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+
+        // Créer l'objet membre complet
+        const newMember = {
+            id: id,
             prenom: data.prenom.trim(),
             nom: data.nom.trim().toUpperCase(),
-            date_naissance: data.dateNaissance || null,
-            nationalite: data.nationalite || null,
+            dateNaissance: data.dateNaissance || '',
+            nationalite: data.nationalite || '',
             email: data.email.trim().toLowerCase(),
             telephone: data.telephone.trim(),
-            adresse: data.adresse || null,
-            ville: data.ville || null,
-            pays: data.pays || null,
+            adresse: data.adresse || '',
+            ville: data.ville || '',
+            pays: data.pays || '',
             titre: data.titre.trim(),
-            institution: data.institution || null,
+            institution: data.institution || '',
             domaine: data.domaine,
-            presentation: data.presentation || null,
+            presentation: data.presentation || '',
             motivation: data.motivation.trim(),
-            interets: data.interets || null,
-            liens: data.liens || null,
+            interets: data.interets || '',
+            liens: data.liens || '',
             newsletter: data.newsletter || false,
+            date_soumission: new Date().toISOString(),
             statut: 'en_attente'
         };
 
-        // Insérer dans Supabase
-        const { data: newMember, error: insertError } = await supabase
-            .from(TABLE_NAME)
-            .insert([memberData])
-            .select()
-            .single();
-
-        if (insertError) {
-            console.error('Erreur insertion Supabase:', insertError);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Erreur lors de l\'enregistrement dans la base de données'
-                })
-            };
-        }
-
+        // Ajouter le nouveau membre
+        membersDB.push(newMember);
         console.log('Membre ajouté avec succès:', newMember.email, 'ID:', newMember.id);
 
         return {
@@ -238,7 +229,7 @@ async function submitMembership(event) {
             body: JSON.stringify({
                 success: true,
                 message: 'Votre demande d\'adhésion a été enregistrée avec succès',
-                id: newMember.id
+                id: id
             })
         };
 
@@ -258,30 +249,15 @@ async function submitMembership(event) {
 // Récupérer tous les membres (protégé)
 async function getAllMembers() {
     try {
-        const { data: members, error } = await supabase
-            .from(TABLE_NAME)
-            .select('*')
-            .order('date_soumission', { ascending: false });
-
-        if (error) {
-            console.error('Erreur Supabase:', error);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Erreur lors de la récupération des membres'
-                })
-            };
-        }
-
+        console.log('Membres dans la DB:', membersDB.length);
+        
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                total: members.length,
-                data: members
+                total: membersDB.length,
+                data: membersDB
             })
         };
         
@@ -301,26 +277,19 @@ async function getAllMembers() {
 // Récupérer un membre par ID (protégé)
 async function getMemberById(id) {
     try {
-        const { data: member, error } = await supabase
-            .from(TABLE_NAME)
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return {
-                    statusCode: 404,
-                    headers,
-                    body: JSON.stringify({
-                        success: false,
-                        error: 'Membre non trouvé'
-                    })
-                };
-            }
-            throw error;
+        const member = membersDB.find(m => m.id === id);
+        
+        if (!member) {
+            return {
+                statusCode: 404,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Membre non trouvé'
+                })
+            };
         }
-
+        
         return {
             statusCode: 200,
             headers,
@@ -359,30 +328,10 @@ async function updateMemberStatus(event, id) {
                 })
             };
         }
-
-        const { data: updatedMember, error } = await supabase
-            .from(TABLE_NAME)
-            .update({ 
-                statut: statut,
-                date_maj: new Date().toISOString()
-            })
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Erreur mise à jour:', error);
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Erreur lors de la mise à jour'
-                })
-            };
-        }
-
-        if (!updatedMember) {
+        
+        const index = membersDB.findIndex(m => m.id === id);
+        
+        if (index === -1) {
             return {
                 statusCode: 404,
                 headers,
@@ -392,14 +341,17 @@ async function updateMemberStatus(event, id) {
                 })
             };
         }
-
+        
+        membersDB[index].statut = statut;
+        membersDB[index].date_maj = new Date().toISOString();
+        
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
                 message: `Statut mis à jour: ${statut}`,
-                data: updatedMember
+                data: { id, statut }
             })
         };
         
@@ -422,7 +374,7 @@ async function adminLogin(event) {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
         
-        console.log('Tentative de connexion admin');
+        console.log('Tentative de connexion');
         
         if (password === ADMIN_KEY) {
             // Générer un token unique
@@ -431,12 +383,9 @@ async function adminLogin(event) {
             // Stocker le token valide
             validTokens.add(token);
             
-            // Nettoyer les anciens tokens (garder les 100 plus récents)
+            // Nettoyer les anciens tokens (optionnel)
             if (validTokens.size > 100) {
-                const tokensArray = Array.from(validTokens);
-                const tokensToKeep = tokensArray.slice(-100);
                 validTokens.clear();
-                tokensToKeep.forEach(t => validTokens.add(t));
             }
             
             return {
