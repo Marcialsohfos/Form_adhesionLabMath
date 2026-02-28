@@ -4,6 +4,7 @@
   "description": "Netlify function for membership management",
   "main": "membership.js",
   "dependencies": {
+    "mongodb": "^5.7.0",
     "crypto": "^1.0.1"
   }
 }
