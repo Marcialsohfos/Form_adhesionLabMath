@@ -12,6 +12,9 @@ const headers = {
 // Clé d'administration
 const ADMIN_KEY = '32015labmath@2026';
 
+// Stockage des tokens valides (simplifié, en production utilisez JWT)
+const validTokens = new Set();
+
 // Stockage en mémoire
 let membersDB = [];
 
@@ -78,7 +81,6 @@ exports.handler = async (event) => {
         }
 
         // Routes protégées (nécessitent authentification)
-        // Vérifier le token pour toutes les autres routes
         const authHeader = event.headers.authorization || event.headers.Authorization;
         
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -92,8 +94,19 @@ exports.handler = async (event) => {
             };
         }
 
-        // Ici on pourrait valider le token, mais pour l'instant on accepte tout token
-        // En production, il faudrait valider le token JWT
+        const token = authHeader.substring(7); // Enlever "Bearer "
+        
+        // Vérifier si le token est valide
+        if (!validTokens.has(token)) {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Non autorisé - Token invalide'
+                })
+            };
+        }
 
         // Routes protégées
         if (event.httpMethod === 'GET' && path === '/members') {
@@ -361,11 +374,19 @@ async function adminLogin(event) {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
         
-        console.log('Tentative de connexion avec:', password);
+        console.log('Tentative de connexion');
         
         if (password === ADMIN_KEY) {
-            // Générer un token simple
+            // Générer un token unique
             const token = crypto.randomBytes(32).toString('hex');
+            
+            // Stocker le token valide
+            validTokens.add(token);
+            
+            // Nettoyer les anciens tokens (optionnel)
+            if (validTokens.size > 100) {
+                validTokens.clear();
+            }
             
             return {
                 statusCode: 200,
