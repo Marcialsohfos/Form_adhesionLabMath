@@ -5,7 +5,7 @@
     <title>Lab_Math Admin - Gestion des adhésions</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Styles existants - gardez-les identiques */
+        /* Mêmes styles que précédemment */
         :root {
             --primary: #00ffff;
             --secondary: #b829ff;
@@ -447,7 +447,7 @@
                         <tbody id="membersTableBody">
                             <tr>
                                 <td colspan="8" class="loading">
-                                    <i class="fas fa-spinner fa-spin"></i> Chargement...
+                                    <i class="fas fa-spinner fa-spin"></i> Veuillez vous connecter...
                                 </td>
                             </tr>
                         </tbody>
@@ -503,19 +503,50 @@
                 const response = await fetch('/.netlify/functions/membership/test');
                 const result = await response.json();
                 showDebug(result);
-                alert('Connexion API: ' + (result.success ? 'OK' : 'Échec'));
+                alert('Connexion API: ' + (result.success ? '✅ OK' : '❌ Échec'));
             } catch (error) {
                 showDebug('Erreur de connexion: ' + error.message);
-                alert('Erreur de connexion à l\'API: ' + error.message);
+                alert('❌ Erreur de connexion à l\'API: ' + error.message);
             }
         }
         
-        // Vérifier si déjà connecté
-        if (adminToken) {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
-            loadMembers();
+        // Vérifier si déjà connecté et token valide
+        async function checkAuth() {
+            if (adminToken) {
+                // Tenter de charger les données pour vérifier si le token est valide
+                try {
+                    const response = await fetch('/.netlify/functions/membership/members', {
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+                    
+                    if (response.status === 401) {
+                        // Token invalide
+                        localStorage.removeItem('adminToken');
+                        adminToken = null;
+                        document.getElementById('loginSection').style.display = 'block';
+                        document.getElementById('adminContent').style.display = 'none';
+                    } else {
+                        // Token valide
+                        document.getElementById('loginSection').style.display = 'none';
+                        document.getElementById('adminContent').style.display = 'block';
+                        loadMembers();
+                    }
+                } catch (error) {
+                    console.error('Erreur de vérification auth:', error);
+                    // En cas d'erreur réseau, on laisse l'utilisateur essayer de se connecter
+                    document.getElementById('loginSection').style.display = 'block';
+                    document.getElementById('adminContent').style.display = 'none';
+                }
+            } else {
+                document.getElementById('loginSection').style.display = 'block';
+                document.getElementById('adminContent').style.display = 'none';
+            }
         }
+        
+        // Appeler checkAuth au chargement
+        document.addEventListener('DOMContentLoaded', checkAuth);
         
         // Fonction de connexion admin
         async function loginAdmin() {
@@ -529,7 +560,7 @@
             }
             
             try {
-                showDebug('Tentative de connexion avec le mot de passe: ' + password);
+                showDebug('Tentative de connexion...');
                 
                 const response = await fetch('/.netlify/functions/membership/login', {
                     method: 'POST',
@@ -545,6 +576,7 @@
                     localStorage.setItem('adminToken', adminToken);
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
+                    document.getElementById('loginError').classList.remove('show');
                     loadMembers();
                     return true;
                 } else {
@@ -568,6 +600,11 @@
         
         // Charger les données depuis l'API
         async function loadMembers() {
+            if (!adminToken) {
+                logoutAdmin();
+                return;
+            }
+            
             try {
                 showDebug('Chargement des membres...');
                 
@@ -576,9 +613,19 @@
                     tbody.innerHTML = '<tr><td colspan="8" class="loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</td></tr>';
                 }
                 
-                const response = await fetch('/.netlify/functions/membership/members');
-                const result = await response.json();
+                const response = await fetch('/.netlify/functions/membership/members', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
                 
+                if (response.status === 401) {
+                    // Non autorisé, déconnexion
+                    logoutAdmin();
+                    return;
+                }
+                
+                const result = await response.json();
                 showDebug(result);
                 
                 if (result.success) {
@@ -733,6 +780,11 @@
         
         // Mettre à jour le statut
         async function updateStatus(id, newStatus) {
+            if (!adminToken) {
+                logoutAdmin();
+                return;
+            }
+            
             if (!confirm(`Êtes-vous sûr de vouloir ${newStatus === 'accepte' ? 'accepter' : 'refuser'} cette demande ?`)) {
                 return;
             }
@@ -743,10 +795,16 @@
                 const response = await fetch(`/.netlify/functions/membership/update/${id}`, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
                     },
                     body: JSON.stringify({ statut: newStatus })
                 });
+                
+                if (response.status === 401) {
+                    logoutAdmin();
+                    return;
+                }
                 
                 const result = await response.json();
                 showDebug(result);
@@ -813,9 +871,17 @@
         function logoutAdmin() {
             localStorage.removeItem('adminToken');
             adminToken = null;
+            members = [];
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminContent').style.display = 'none';
             document.getElementById('adminPassword').value = '';
+            document.getElementById('loginError').classList.remove('show');
+            
+            // Mettre à jour le tableau
+            const tbody = document.getElementById('membersTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading"><i class="fas fa-lock"></i> Veuillez vous connecter</td></tr>';
+            }
         }
         
         // Fermer le modal en cliquant en dehors
@@ -825,14 +891,6 @@
                 closeModal();
             }
         }
-        
-        // Test automatique au chargement
-        document.addEventListener('DOMContentLoaded', function() {
-            // Vérifier si on est sur la page admin
-            if (window.location.pathname.includes('admin')) {
-                testApiConnection();
-            }
-        });
     </script>
 </body>
 </html>
