@@ -1,554 +1,112 @@
-<!-- admin-memberships.html -->
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Lab_Math Admin - Gestion des adhésions</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Styles existants - gardez-les identiques */
-        :root {
-            --primary: #00ffff;
-            --secondary: #b829ff;
-            --accent: #ff2a6d;
-            --dark: #0a0a0f;
-            --darker: #050507;
-            --light: #e0e0ff;
-            --text-dim: #a0a0cc;
-            --success: #00ff00;
-            --error: #ff2a6d;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--dark);
-            color: var(--light);
-            min-height: 100vh;
-        }
-
-        .admin-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .admin-header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid var(--primary);
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            font-family: 'JetBrains Mono', monospace;
-        }
-        
-        .stat-label {
-            color: var(--text-dim);
-            font-size: 0.9rem;
-        }
-        
-        .filters {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .filter-btn {
-            padding: 0.5rem 1.5rem;
-            border: 1px solid var(--primary);
-            background: transparent;
-            color: var(--primary);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 500;
-        }
-        
-        .filter-btn.active,
-        .filter-btn:hover {
-            background: var(--primary);
-            color: var(--dark);
-        }
-        
-        .export-btn {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--dark);
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-left: auto;
-            transition: all 0.3s;
-        }
-
-        .export-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-        }
-        
-        .members-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-        }
-        
-        .members-table th {
-            background: rgba(0, 255, 255, 0.2);
-            color: var(--primary);
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-        }
-        
-        .members-table td {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-            color: var(--light);
-        }
-        
-        .members-table tr:hover {
-            background: rgba(0, 255, 255, 0.05);
-        }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        
-        .status-en_attente {
-            background: rgba(255, 165, 0, 0.2);
-            color: orange;
-            border: 1px solid orange;
-        }
-        
-        .status-accepte {
-            background: rgba(0, 255, 0, 0.2);
-            color: #00ff00;
-            border: 1px solid #00ff00;
-        }
-        
-        .status-refuse {
-            background: rgba(255, 0, 0, 0.2);
-            color: #ff2a6d;
-            border: 1px solid #ff2a6d;
-        }
-        
-        .action-btn {
-            padding: 0.3rem 0.8rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 0 0.2rem;
-            font-size: 0.8rem;
-            transition: all 0.3s;
-        }
-        
-        .btn-view {
-            background: var(--primary);
-            color: var(--dark);
-        }
-        
-        .btn-accept {
-            background: #00ff00;
-            color: var(--dark);
-        }
-        
-        .btn-reject {
-            background: #ff2a6d;
-            color: white;
-        }
-
-        .action-btn:hover {
-            transform: scale(1.1);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: var(--dark);
-            border: 2px solid var(--primary);
-            border-radius: 15px;
-            padding: 2rem;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid var(--primary);
-            padding-bottom: 0.5rem;
-        }
-        
-        .close-modal {
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--primary);
-        }
-
-        .close-modal:hover {
-            color: var(--accent);
-        }
-
-        .login-container {
-            max-width: 400px;
-            margin: 100px auto;
-            padding: 2rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 2px solid var(--primary);
-            border-radius: 15px;
-            text-align: center;
-        }
-
-        .login-container h2 {
-            margin-bottom: 2rem;
-        }
-
-        .login-input {
-            width: 100%;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            color: var(--light);
-            font-size: 1rem;
-        }
-
-        .login-input:focus {
-            outline: none;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: var(--dark);
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .login-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--primary);
-        }
-
-        .error-message {
-            color: var(--error);
-            margin-top: 1rem;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-dim);
-        }
-
-        .debug-panel {
-            background: rgba(255, 42, 109, 0.1);
-            border: 1px solid var(--error);
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .debug-panel.show {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            .admin-container {
-                padding: 1rem;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            
-            .members-table {
-                font-size: 0.9rem;
-            }
-            
-            .filters {
-                flex-direction: column;
-            }
-            
-            .export-btn {
-                margin-left: 0;
-            }
-        }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <div id="loginSection" class="login-container">
-        <h2><span class="gradient-text">Accès Admin</span></h2>
-        <p style="margin-bottom: 2rem; color: var(--text-dim);">Entrez votre clé d'accès pour continuer</p>
-        <input type="password" id="adminPassword" class="login-input" placeholder="Clé d'accès" onkeypress="if(event.key === 'Enter') loginAdmin()">
-        <button class="login-btn" onclick="loginAdmin()">
-            <i class="fas fa-lock-open"></i> Se connecter
-        </button>
-        <div id="loginError" class="error-message">
-            <i class="fas fa-exclamation-circle"></i> Clé d'accès incorrecte
-        </div>
-        <div class="debug-panel" id="debugPanel">
-            <strong>Debug Info:</strong><br>
-            <span id="debugInfo"></span>
-        </div>
-    </div>
-
-    <div id="adminContent" style="display: none;">
-        <div class="admin-container">
-            <div class="admin-header">
-                <h1><span class="gradient-text">Gestion des adhésions</span></h1>
-                <p style="color: var(--text-dim);">Administration des demandes d'adhésion à Lab_Math</p>
-                <button class="filter-btn" onclick="refreshData()" style="margin-top: 1rem;">
-                    <i class="fas fa-sync-alt"></i> Rafraîchir
-                </button>
-            </div>
-            
-            <div class="admin-members">
-                <!-- Statistiques -->
-                <div class="stats-grid" id="stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="totalCount">0</div>
-                        <div class="stat-label">Total demandes</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="pendingCount">0</div>
-                        <div class="stat-label">En attente</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="acceptedCount">0</div>
-                        <div class="stat-label">Acceptées</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="rejectedCount">0</div>
-                        <div class="stat-label">Refusées</div>
-                    </div>
-                </div>
-                
-                <!-- Filtres -->
-                <div class="filters">
-                    <button class="filter-btn active" onclick="filterMembers('all')">Tous</button>
-                    <button class="filter-btn" onclick="filterMembers('en_attente')">En attente</button>
-                    <button class="filter-btn" onclick="filterMembers('accepte')">Acceptés</button>
-                    <button class="filter-btn" onclick="filterMembers('refuse')">Refusés</button>
-                    <button class="export-btn" onclick="exportToCSV()">
-                        <i class="fas fa-download"></i> Exporter CSV
-                    </button>
-                </div>
-                
-                <!-- Tableau des membres -->
-                <div style="overflow-x: auto;">
-                    <table class="members-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nom complet</th>
-                                <th>Email</th>
-                                <th>Téléphone</th>
-                                <th>Domaine</th>
-                                <th>Date</th>
-                                <th>Statut</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="membersTableBody">
-                            <tr>
-                                <td colspan="8" class="loading">
-                                    <i class="fas fa-spinner fa-spin"></i> Chargement...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+<script>
+    let members = [];
+    let currentFilter = 'all';
+    let adminToken = localStorage.getItem('adminToken');
     
-    <!-- Modal de détails -->
-    <div class="modal" id="memberModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 class="gradient-text">Détails de la demande</h2>
-                <span class="close-modal" onclick="closeModal()">&times;</span>
-            </div>
-            <div id="modalContent">
-                <!-- Rempli par JavaScript -->
-            </div>
-        </div>
-    </div>
+    // Vérifier si déjà connecté
+    if (adminToken) {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        loadMembers();
+    }
     
-    <script>
-        let members = [];
-        let currentFilter = 'all';
-        let adminToken = localStorage.getItem('adminToken');
+    // Fonction de debug
+    function showDebug(message) {
+        console.log('Debug:', message);
+        const debugInfo = document.getElementById('debugInfo');
+        const debugPanel = document.getElementById('debugPanel');
+        if (debugInfo) {
+            debugInfo.innerHTML = typeof message === 'object' ? JSON.stringify(message, null, 2) : message;
+        }
+        if (debugPanel) {
+            debugPanel.classList.add('show');
+            setTimeout(() => {
+                debugPanel.classList.remove('show');
+            }, 5000);
+        }
+    }
+    
+    // Fonction de connexion admin
+    async function loginAdmin() {
+        const password = document.getElementById('adminPassword')?.value;
+        const loginError = document.getElementById('loginError');
         
-        // Vérifier si déjà connecté
-        if (adminToken) {
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('adminContent').style.display = 'block';
-            loadMembers();
+        if (!password) {
+            loginError.textContent = 'Veuillez entrer la clé d\'accès';
+            loginError.classList.add('show');
+            return false;
         }
         
-        // Fonction de debug
-        function showDebug(message) {
-            const debugPanel = document.getElementById('debugPanel');
-            const debugInfo = document.getElementById('debugInfo');
-            if (debugPanel && debugInfo) {
-                debugInfo.innerHTML = message;
-                debugPanel.classList.add('show');
-                setTimeout(() => {
-                    debugPanel.classList.remove('show');
-                }, 5000);
-            }
-            console.log('Debug:', message);
-        }
-        
-        // Fonction de connexion admin
-        async function loginAdmin() {
-            const password = document.getElementById('adminPassword')?.value;
-            const loginError = document.getElementById('loginError');
+        try {
+            showDebug('Tentative de connexion avec le mot de passe...');
             
-            if (!password) {
-                loginError.textContent = 'Veuillez entrer la clé d\'accès';
+            const response = await fetch('/.netlify/functions/membership/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password })
+            });
+            
+            const result = await response.json();
+            showDebug(result);
+            
+            if (result.success) {
+                adminToken = result.token;
+                localStorage.setItem('adminToken', adminToken);
+                document.getElementById('loginSection').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+                loadMembers();
+                return true;
+            } else {
+                loginError.textContent = result.error || 'Clé d\'accès incorrecte';
                 loginError.classList.add('show');
                 return false;
             }
+        } catch (error) {
+            console.error('Erreur de connexion:', error);
+            loginError.textContent = 'Erreur de connexion au serveur: ' + error.message;
+            loginError.classList.add('show');
+            showDebug('Erreur: ' + error.message);
+            return false;
+        }
+    }
+    
+    // Rafraîchir les données
+    function refreshData() {
+        loadMembers();
+    }
+    
+    // Charger les données depuis l'API
+    async function loadMembers() {
+        try {
+            showDebug('Chargement des membres...');
             
-            try {
-                showDebug('Tentative de connexion...');
-                
-                const response = await fetch('/.netlify/functions/membership/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: password })
-                });
-                
-                const result = await response.json();
-                showDebug(`Réponse: ${JSON.stringify(result)}`);
-                
-                if (result.success) {
-                    adminToken = result.token;
-                    localStorage.setItem('adminToken', adminToken);
-                    document.getElementById('loginSection').style.display = 'none';
-                    document.getElementById('adminContent').style.display = 'block';
-                    loadMembers();
-                    return true;
-                } else {
-                    loginError.textContent = result.error || 'Clé d\'accès incorrecte';
-                    loginError.classList.add('show');
-                    return false;
+            if (!adminToken) {
+                showDebug('Pas de token admin');
+                return;
+            }
+            
+            const response = await fetch('/.netlify/functions/membership/members', {
+                headers: {
+                    'Authorization': `Bearer ${adminToken}`
                 }
-            } catch (error) {
-                console.error('Erreur de connexion:', error);
-                loginError.textContent = 'Erreur de connexion au serveur: ' + error.message;
-                loginError.classList.add('show');
-                showDebug('Erreur: ' + error.message);
-                return false;
-            }
-        }
-        
-        // Rafraîchir les données
-        function refreshData() {
-            loadMembers();
-        }
-        
-        // Charger les données depuis l'API
-        async function loadMembers() {
-            try {
-                showDebug('Chargement des membres...');
-                
-                const response = await fetch('/.netlify/functions/membership/members');
-                const result = await response.json();
-                
-                showDebug(`Réponse: ${JSON.stringify(result)}`);
-                
-                if (result.success) {
-                    members = result.data || [];
-                    updateTable(currentFilter);
-                    updateStats();
+            });
+            
+            const result = await response.json();
+            showDebug(result);
+            
+            if (result.success) {
+                members = result.data || [];
+                updateTable(currentFilter);
+                updateStats();
+            } else {
+                if (response.status === 401) {
+                    // Token invalide, rediriger vers login
+                    localStorage.removeItem('adminToken');
+                    adminToken = null;
+                    document.getElementById('loginSection').style.display = 'block';
+                    document.getElementById('adminContent').style.display = 'none';
+                    document.getElementById('loginError').textContent = 'Session expirée, veuillez vous reconnecter';
+                    document.getElementById('loginError').classList.add('show');
                 } else {
                     console.error('Erreur:', result.error);
                     document.getElementById('membersTableBody').innerHTML = `
@@ -559,188 +117,209 @@
                         </tr>
                     `;
                 }
-            } catch (error) {
-                console.error('Erreur chargement:', error);
-                document.getElementById('membersTableBody').innerHTML = `
-                    <tr>
-                        <td colspan="8" class="error-message show">
-                            <i class="fas fa-exclamation-circle"></i> Impossible de charger les données: ${error.message}
-                        </td>
-                    </tr>
-                `;
-                showDebug('Erreur chargement: ' + error.message);
             }
-        }
-        
-        // Mettre à jour le tableau
-        function updateTable(filter = 'all') {
-            const tbody = document.getElementById('membersTableBody');
-            currentFilter = filter;
-            
-            const filteredMembers = filter === 'all' 
-                ? members 
-                : members.filter(m => m.statut === filter);
-            
-            if (filteredMembers.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="no-data">
-                            <i class="fas fa-inbox"></i> Aucune demande trouvée
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            tbody.innerHTML = '';
-            
-            filteredMembers.forEach(member => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${member.id ? member.id.substring(0, 8) + '...' : 'N/A'}</td>
-                    <td>${member.prenom || ''} ${member.nom || ''}</td>
-                    <td>${member.email || ''}</td>
-                    <td>${member.telephone || ''}</td>
-                    <td>${member.domaine || ''}</td>
-                    <td>${member.date_soumission ? new Date(member.date_soumission).toLocaleDateString('fr-FR') : 'N/A'}</td>
-                    <td><span class="status-badge status-${member.statut || 'en_attente'}">${member.statut || 'en_attente'}</span></td>
-                    <td>
-                        <button class="action-btn btn-view" onclick="viewMember('${member.id}')" title="Voir détails">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        ${member.statut === 'en_attente' ? `
-                            <button class="action-btn btn-accept" onclick="updateStatus('${member.id}', 'accepte')" title="Accepter">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            <button class="action-btn btn-reject" onclick="updateStatus('${member.id}', 'refuse')" title="Refuser">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        ` : ''}
+        } catch (error) {
+            console.error('Erreur chargement:', error);
+            document.getElementById('membersTableBody').innerHTML = `
+                <tr>
+                    <td colspan="8" class="error-message show">
+                        <i class="fas fa-exclamation-circle"></i> Impossible de charger les données: ${error.message}
                     </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-        
-        // Mettre à jour les statistiques
-        function updateStats() {
-            document.getElementById('totalCount').textContent = members.length;
-            document.getElementById('pendingCount').textContent = 
-                members.filter(m => m.statut === 'en_attente').length;
-            document.getElementById('acceptedCount').textContent = 
-                members.filter(m => m.statut === 'accepte').length;
-            document.getElementById('rejectedCount').textContent = 
-                members.filter(m => m.statut === 'refuse').length;
-        }
-        
-        // Filtrer
-        function filterMembers(filter) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            updateTable(filter);
-        }
-        
-        // Voir les détails
-        function viewMember(id) {
-            const member = members.find(m => m.id === id);
-            if (!member) return;
-            
-            const modal = document.getElementById('memberModal');
-            const content = document.getElementById('modalContent');
-            
-            content.innerHTML = `
-                <div style="color: white;">
-                    <p><strong><i class="fas fa-id-card" style="color: var(--primary);"></i> ID:</strong> ${member.id}</p>
-                    <p><strong><i class="fas fa-user" style="color: var(--primary);"></i> Nom:</strong> ${member.prenom} ${member.nom}</p>
-                    <p><strong><i class="fas fa-envelope" style="color: var(--primary);"></i> Email:</strong> ${member.email}</p>
-                    <p><strong><i class="fas fa-phone" style="color: var(--primary);"></i> Téléphone:</strong> ${member.telephone}</p>
-                    <p><strong><i class="fas fa-calendar" style="color: var(--primary);"></i> Date naissance:</strong> ${member.dateNaissance || 'Non spécifié'}</p>
-                    <p><strong><i class="fas fa-flag" style="color: var(--primary);"></i> Nationalité:</strong> ${member.nationalite || 'Non spécifié'}</p>
-                    <p><strong><i class="fas fa-map-marker-alt" style="color: var(--primary);"></i> Adresse:</strong> ${member.adresse || 'Non spécifié'}</p>
-                    <p><strong><i class="fas fa-city" style="color: var(--primary);"></i> Ville/Pays:</strong> ${member.ville || ''} ${member.pays || ''}</p>
-                    <p><strong><i class="fas fa-briefcase" style="color: var(--primary);"></i> Titre:</strong> ${member.titre}</p>
-                    <p><strong><i class="fas fa-building" style="color: var(--primary);"></i> Institution:</strong> ${member.institution || 'Non spécifié'}</p>
-                    <p><strong><i class="fas fa-flask" style="color: var(--primary);"></i> Domaine:</strong> ${member.domaine}</p>
-                    <p><strong><i class="fas fa-bullseye" style="color: var(--primary);"></i> Motivation:</strong> ${member.motivation}</p>
-                    <p><strong><i class="fas fa-code-branch" style="color: var(--primary);"></i> Intérêts:</strong> ${member.interets || 'Non spécifié'}</p>
-                    <p><strong><i class="fab fa-github" style="color: var(--primary);"></i> Liens:</strong> ${member.liens || 'Non spécifié'}</p>
-                    <p><strong><i class="fas fa-newspaper" style="color: var(--primary);"></i> Newsletter:</strong> ${member.newsletter ? 'Oui' : 'Non'}</p>
-                    <p><strong><i class="fas fa-clock" style="color: var(--primary);"></i> Date soumission:</strong> ${new Date(member.date_soumission).toLocaleString('fr-FR')}</p>
-                    <p><strong><i class="fas fa-tag" style="color: var(--primary);"></i> Statut:</strong> <span class="status-badge status-${member.statut}">${member.statut}</span></p>
-                </div>
+                </tr>
             `;
-            
-            modal.classList.add('active');
+            showDebug('Erreur chargement: ' + error.message);
+        }
+    }
+    
+    // Mettre à jour le tableau
+    function updateTable(filter = 'all') {
+        const tbody = document.getElementById('membersTableBody');
+        currentFilter = filter;
+        
+        const filteredMembers = filter === 'all' 
+            ? members 
+            : members.filter(m => m.statut === filter);
+        
+        if (filteredMembers.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="no-data">
+                        <i class="fas fa-inbox"></i> Aucune demande trouvée
+                    </td>
+                </tr>
+            `;
+            return;
         }
         
-        // Fermer le modal
-        function closeModal() {
-            document.getElementById('memberModal').classList.remove('active');
+        tbody.innerHTML = '';
+        
+        filteredMembers.forEach(member => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${member.id ? member.id.substring(0, 8) + '...' : 'N/A'}</td>
+                <td>${member.prenom || ''} ${member.nom || ''}</td>
+                <td>${member.email || ''}</td>
+                <td>${member.telephone || ''}</td>
+                <td>${member.domaine || ''}</td>
+                <td>${member.date_soumission ? new Date(member.date_soumission).toLocaleDateString('fr-FR') : 'N/A'}</td>
+                <td><span class="status-badge status-${member.statut || 'en_attente'}">${member.statut || 'en_attente'}</span></td>
+                <td>
+                    <button class="action-btn btn-view" onclick="viewMember('${member.id}')" title="Voir détails">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    ${member.statut === 'en_attente' ? `
+                        <button class="action-btn btn-accept" onclick="updateStatus('${member.id}', 'accepte')" title="Accepter">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="action-btn btn-reject" onclick="updateStatus('${member.id}', 'refuse')" title="Refuser">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+    
+    // Mettre à jour les statistiques
+    function updateStats() {
+        document.getElementById('totalCount').textContent = members.length;
+        document.getElementById('pendingCount').textContent = 
+            members.filter(m => m.statut === 'en_attente').length;
+        document.getElementById('acceptedCount').textContent = 
+            members.filter(m => m.statut === 'accepte').length;
+        document.getElementById('rejectedCount').textContent = 
+            members.filter(m => m.statut === 'refuse').length;
+    }
+    
+    // Filtrer
+    function filterMembers(filter) {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        updateTable(filter);
+    }
+    
+    // Voir les détails
+    function viewMember(id) {
+        const member = members.find(m => m.id === id);
+        if (!member) return;
+        
+        const modal = document.getElementById('memberModal');
+        const content = document.getElementById('modalContent');
+        
+        content.innerHTML = `
+            <div style="color: white;">
+                <p><strong><i class="fas fa-id-card" style="color: var(--primary);"></i> ID:</strong> ${member.id}</p>
+                <p><strong><i class="fas fa-user" style="color: var(--primary);"></i> Nom:</strong> ${member.prenom} ${member.nom}</p>
+                <p><strong><i class="fas fa-envelope" style="color: var(--primary);"></i> Email:</strong> ${member.email}</p>
+                <p><strong><i class="fas fa-phone" style="color: var(--primary);"></i> Téléphone:</strong> ${member.telephone}</p>
+                <p><strong><i class="fas fa-calendar" style="color: var(--primary);"></i> Date naissance:</strong> ${member.dateNaissance || 'Non spécifié'}</p>
+                <p><strong><i class="fas fa-flag" style="color: var(--primary);"></i> Nationalité:</strong> ${member.nationalite || 'Non spécifié'}</p>
+                <p><strong><i class="fas fa-map-marker-alt" style="color: var(--primary);"></i> Adresse:</strong> ${member.adresse || 'Non spécifié'}</p>
+                <p><strong><i class="fas fa-city" style="color: var(--primary);"></i> Ville/Pays:</strong> ${member.ville || ''} ${member.pays || ''}</p>
+                <p><strong><i class="fas fa-briefcase" style="color: var(--primary);"></i> Titre:</strong> ${member.titre}</p>
+                <p><strong><i class="fas fa-building" style="color: var(--primary);"></i> Institution:</strong> ${member.institution || 'Non spécifié'}</p>
+                <p><strong><i class="fas fa-flask" style="color: var(--primary);"></i> Domaine:</strong> ${member.domaine}</p>
+                <p><strong><i class="fas fa-bullseye" style="color: var(--primary);"></i> Motivation:</strong> ${member.motivation}</p>
+                <p><strong><i class="fas fa-code-branch" style="color: var(--primary);"></i> Intérêts:</strong> ${member.interets || 'Non spécifié'}</p>
+                <p><strong><i class="fab fa-github" style="color: var(--primary);"></i> Liens:</strong> ${member.liens || 'Non spécifié'}</p>
+                <p><strong><i class="fas fa-newspaper" style="color: var(--primary);"></i> Newsletter:</strong> ${member.newsletter ? 'Oui' : 'Non'}</p>
+                <p><strong><i class="fas fa-clock" style="color: var(--primary);"></i> Date soumission:</strong> ${new Date(member.date_soumission).toLocaleString('fr-FR')}</p>
+                <p><strong><i class="fas fa-tag" style="color: var(--primary);"></i> Statut:</strong> <span class="status-badge status-${member.statut}">${member.statut}</span></p>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+    }
+    
+    // Fermer le modal
+    function closeModal() {
+        document.getElementById('memberModal').classList.remove('active');
+    }
+    
+    // Mettre à jour le statut
+    async function updateStatus(id, newStatus) {
+        if (!confirm(`Êtes-vous sûr de vouloir ${newStatus === 'accepte' ? 'accepter' : 'refuser'} cette demande ?`)) {
+            return;
         }
         
-        // Mettre à jour le statut
-        async function updateStatus(id, newStatus) {
-            if (!confirm(`Êtes-vous sûr de vouloir ${newStatus === 'accepte' ? 'accepter' : 'refuser'} cette demande ?`)) {
-                return;
-            }
+        try {
+            showDebug(`Mise à jour statut: ${id} -> ${newStatus}`);
             
-            try {
-                showDebug(`Mise à jour statut: ${id} -> ${newStatus}`);
-                
-                const response = await fetch(`/.netlify/functions/membership/update/${id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ statut: newStatus })
-                });
-                
-                const result = await response.json();
-                showDebug(`Réponse: ${JSON.stringify(result)}`);
-                
-                if (result.success) {
-                    await loadMembers();
-                } else {
-                    alert('Erreur: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la mise à jour: ' + error.message);
-                showDebug('Erreur: ' + error.message);
-            }
-        }
-        
-        // Exporter en CSV
-        function exportToCSV() {
-            if (members.length === 0) {
-                alert('Aucune donnée à exporter');
-                return;
-            }
-            
-            let csv = "ID,Prénom,Nom,Email,Téléphone,Date de naissance,Nationalité,Adresse,Ville,Pays,Titre,Institution,Domaine,Motivation,Intérêts,Liens,Newsletter,Date soumission,Statut\n";
-            
-            members.forEach(m => {
-                csv += `"${m.id || ''}","${m.prenom || ''}","${m.nom || ''}","${m.email || ''}","${m.telephone || ''}","${m.dateNaissance || ''}","${m.nationalite || ''}","${m.adresse || ''}","${m.ville || ''}","${m.pays || ''}","${m.titre || ''}","${m.institution || ''}","${m.domaine || ''}","${(m.motivation || '').replace(/"/g, '""')}","${(m.interets || '').replace(/"/g, '""')}","${m.liens || ''}","${m.newsletter ? 'Oui' : 'Non'}","${m.date_soumission || ''}","${m.statut || ''}"\n`;
+            const response = await fetch(`/.netlify/functions/membership/update/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${adminToken}`
+                },
+                body: JSON.stringify({ statut: newStatus })
             });
             
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `labmath_members_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+            const result = await response.json();
+            showDebug(result);
+            
+            if (result.success) {
+                await loadMembers();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Erreur:', error);
+            alert('Erreur lors de la mise à jour: ' + error.message);
+            showDebug('Erreur: ' + error.message);
+        }
+    }
+    
+    // Exporter en CSV
+    function exportToCSV() {
+        if (members.length === 0) {
+            alert('Aucune donnée à exporter');
+            return;
         }
         
-        // Fermer le modal en cliquant en dehors
-        window.onclick = function(event) {
-            const modal = document.getElementById('memberModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+        let csv = "ID,Prénom,Nom,Email,Téléphone,Date de naissance,Nationalité,Adresse,Ville,Pays,Titre,Institution,Domaine,Motivation,Intérêts,Liens,Newsletter,Date soumission,Statut\n";
+        
+        members.forEach(m => {
+            csv += `"${m.id || ''}","${m.prenom || ''}","${m.nom || ''}","${m.email || ''}","${m.telephone || ''}","${m.dateNaissance || ''}","${m.nationalite || ''}","${m.adresse || ''}","${m.ville || ''}","${m.pays || ''}","${m.titre || ''}","${m.institution || ''}","${m.domaine || ''}","${(m.motivation || '').replace(/"/g, '""')}","${(m.interets || '').replace(/"/g, '""')}","${m.liens || ''}","${m.newsletter ? 'Oui' : 'Non'}","${m.date_soumission || ''}","${m.statut || ''}"\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `labmath_members_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
+    
+    // Déconnexion
+    function logoutAdmin() {
+        localStorage.removeItem('adminToken');
+        adminToken = null;
+        document.getElementById('loginSection').style.display = 'block';
+        document.getElementById('adminContent').style.display = 'none';
+    }
+    
+    // Fermer le modal en cliquant en dehors
+    window.onclick = function(event) {
+        const modal = document.getElementById('memberModal');
+        if (event.target === modal) {
+            closeModal();
         }
-    </script>
-</body>
-</html>
+    }
+    
+    // Ajouter un bouton de déconnexion
+    document.addEventListener('DOMContentLoaded', function() {
+        const header = document.querySelector('.admin-header');
+        if (header) {
+            const logoutBtn = document.createElement('button');
+            logoutBtn.className = 'filter-btn';
+            logoutBtn.style.marginLeft = '1rem';
+            logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Déconnexion';
+            logoutBtn.onclick = logoutAdmin;
+            header.appendChild(logoutBtn);
+        }
+    });
+</script>
