@@ -1,0 +1,17 @@
+{
+  "name": "labmath-membership",
+  "version": "1.0.0",
+  "description": "Site d'adhésion LabMath avec fonctions Netlify",
+  "main": "index.html",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "node build.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

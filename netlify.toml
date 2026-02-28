@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && envsubst < netlify/functions/membership.template.js > netlify/functions/membership.js"
+  command = "npm install && npm run build"
   functions = "netlify/functions"
   publish = "."
 
