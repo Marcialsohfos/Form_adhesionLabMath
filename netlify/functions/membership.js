@@ -1,42 +1,45 @@
 // netlify/functions/membership.js
 const crypto = require('crypto');
-const { MongoClient } = require('mongodb');
 
 // Configuration CORS
 const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Content-Type': 'application/json'
 };
 
-// URI MongoDB (à remplacer avec vos identifiants)
-// Créez un compte gratuit sur https://www.mongodb.com/atlas
-const MONGODB_URI = process.env.MONGODB_URI || 'votre_uri_mongodb';
-const DB_NAME = 'labmath';
-const COLLECTION_NAME = 'members';
+// Clé d'administration (à changer en production)
+const ADMIN_KEY = '32015labmath@2026';
 
-let cachedClient = null;
-let cachedDb = null;
+// Stockage en mémoire (sera réinitialisé à chaque déploiement)
+// Pour la production, utilisez une vraie base de données comme MongoDB Atlas ou Airtable
+let inMemoryDB = [];
 
-async function connectToDatabase() {
-    if (cachedClient && cachedDb) {
-        return { client: cachedClient, db: cachedDb };
+// Charger les données initiales depuis l'environnement ou un service externe
+// Pour l'instant, on initialise avec des données de test
+const initializeDB = () => {
+    if (inMemoryDB.length === 0) {
+        // Données de test
+        inMemoryDB = [
+            {
+                id: 'MEM_' + Date.now() + '_test1',
+                prenom: 'Jean',
+                nom: 'MARTIN',
+                email: 'jean.martin@example.com',
+                telephone: '+237 620 307 439',
+                domaine: 'Intelligence Artificielle',
+                date_soumission: new Date().toISOString(),
+                statut: 'en_attente'
+            }
+        ];
     }
-
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    const db = client.db(DB_NAME);
-    
-    cachedClient = client;
-    cachedDb = db;
-    
-    return { client, db };
-}
+    return inMemoryDB;
+};
 
 // Gestionnaire principal
 exports.handler = async (event) => {
-    // Gérer les requêtes OPTIONS
+    // Gérer les requêtes OPTIONS (CORS preflight)
     if (event.httpMethod === 'OPTIONS') {
         return {
             statusCode: 200,
@@ -50,11 +53,11 @@ exports.handler = async (event) => {
         console.log('Méthode:', event.httpMethod, 'Path:', path);
         
         // Routes
-        if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit/')) {
+        if (event.httpMethod === 'POST' && path === '/submit') {
             return await submitMembership(event);
         }
         
-        if (event.httpMethod === 'GET' && (path === '/members' || path === '/members/')) {
+        if (event.httpMethod === 'GET' && path === '/members') {
             return await getAllMembers(event);
         }
         
@@ -63,7 +66,7 @@ exports.handler = async (event) => {
             return await getMemberById(id);
         }
         
-        if (event.httpMethod === 'POST' && (path === '/login' || path === '/login/')) {
+        if (event.httpMethod === 'POST' && path === '/login') {
             return await adminLogin(event);
         }
         
@@ -73,14 +76,15 @@ exports.handler = async (event) => {
         }
 
         // Route de test
-        if (event.httpMethod === 'GET' && (path === '/test' || path === '/test/')) {
+        if (event.httpMethod === 'GET' && path === '/test') {
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: true,
                     message: 'La fonction membership est opérationnelle',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    membersCount: inMemoryDB.length
                 })
             };
         }
@@ -90,7 +94,8 @@ exports.handler = async (event) => {
             headers,
             body: JSON.stringify({ 
                 success: false,
-                error: 'Route non trouvée'
+                error: 'Route non trouvée',
+                path: path 
             })
         };
     } catch (error) {
@@ -141,15 +146,12 @@ async function submitMembership(event) {
             };
         }
 
-        const { db } = await connectToDatabase();
-        const collection = db.collection(COLLECTION_NAME);
+        // Initialiser la DB
+        const members = initializeDB();
 
         // Vérifier si l'email existe déjà
-        const existingMember = await collection.findOne({ 
-            email: data.email.trim().toLowerCase() 
-        });
-        
-        if (existingMember) {
+        const emailExists = members.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
+        if (emailExists) {
             return {
                 statusCode: 400,
                 headers,
@@ -187,8 +189,8 @@ async function submitMembership(event) {
             statut: 'en_attente'
         };
 
-        // Insérer dans MongoDB
-        await collection.insertOne(newMember);
+        // Ajouter le nouveau membre
+        members.push(newMember);
         console.log('Membre ajouté avec succès:', newMember.email, 'ID:', newMember.id);
 
         return {
@@ -218,50 +220,27 @@ async function submitMembership(event) {
 // Récupérer tous les membres
 async function getAllMembers(event) {
     try {
-        const { db } = await connectToDatabase();
-        const collection = db.collection(COLLECTION_NAME);
+        const members = initializeDB();
         
-        const params = event.queryStringParameters || {};
-        
-        // Construire le filtre
-        let filter = {};
-        if (params.statut) {
-            filter.statut = params.statut;
+        // Vérifier l'authentification pour l'accès admin
+        const authHeader = event.headers.authorization || event.headers.Authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Non autorisé'
+                })
+            };
         }
-        
-        // Recherche
-        if (params.search) {
-            const searchRegex = new RegExp(params.search, 'i');
-            filter.$or = [
-                { prenom: searchRegex },
-                { nom: searchRegex },
-                { email: searchRegex }
-            ];
-        }
-        
-        // Pagination
-        const page = parseInt(params.page) || 1;
-        const limit = parseInt(params.limit) || 50;
-        const skip = (page - 1) * limit;
-        
-        // Exécuter la requête
-        const members = await collection
-            .find(filter)
-            .sort({ date_soumission: -1 })
-            .skip(skip)
-            .limit(limit)
-            .toArray();
-        
-        const total = await collection.countDocuments(filter);
-        
+
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                total: total,
-                page: page,
-                pages: Math.ceil(total / limit),
+                total: members.length,
                 data: members
             })
         };
@@ -283,10 +262,8 @@ async function getAllMembers(event) {
 // Récupérer un membre par ID
 async function getMemberById(id) {
     try {
-        const { db } = await connectToDatabase();
-        const collection = db.collection(COLLECTION_NAME);
-        
-        const member = await collection.findOne({ id: id });
+        const members = initializeDB();
+        const member = members.find(m => m.id === id);
         
         if (!member) {
             return {
@@ -338,26 +315,10 @@ async function updateMemberStatus(event, id) {
             };
         }
         
-        const { db } = await connectToDatabase();
-        const collection = db.collection(COLLECTION_NAME);
+        const members = initializeDB();
+        const index = members.findIndex(m => m.id === id);
         
-        const updateData = {
-            $set: {
-                statut: statut,
-                date_maj: new Date().toISOString()
-            }
-        };
-        
-        if (commentaire) {
-            updateData.$set.commentaire_admin = commentaire;
-        }
-        
-        const result = await collection.updateOne(
-            { id: id },
-            updateData
-        );
-        
-        if (result.matchedCount === 0) {
+        if (index === -1) {
             return {
                 statusCode: 404,
                 headers,
@@ -366,6 +327,12 @@ async function updateMemberStatus(event, id) {
                     error: 'Membre non trouvé'
                 })
             };
+        }
+        
+        members[index].statut = statut;
+        members[index].date_maj = new Date().toISOString();
+        if (commentaire) {
+            members[index].commentaire_admin = commentaire;
         }
         
         return {
@@ -397,9 +364,6 @@ async function adminLogin(event) {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
         
-        // La clé d'accès (devrait être dans les variables d'environnement)
-        const ADMIN_KEY = process.env.ADMIN_KEY || '32015labmath@2026';
-        
         if (password === ADMIN_KEY) {
             // Générer un token simple
             const token = crypto.randomBytes(32).toString('hex');
@@ -410,8 +374,7 @@ async function adminLogin(event) {
                 body: JSON.stringify({
                     success: true,
                     message: 'Connexion réussie',
-                    token: token,
-                    expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    token: token
                 })
             };
         } else {
