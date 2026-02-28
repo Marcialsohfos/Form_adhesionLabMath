@@ -1,10 +1,17 @@
 {
-  "name": "membership-function",
+  "name": "labmath-membership",
   "version": "1.0.0",
-  "description": "Netlify function for membership management",
-  "main": "membership.js",
+  "description": "Site d'adhésion LabMath avec fonctions Netlify",
+  "main": "index.html",
   "dependencies": {
-    "mongodb": "^5.7.0",
+    "@supabase/supabase-js": "^2.39.0",
     "crypto": "^1.0.1"
-  }
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "echo 'No build required'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
