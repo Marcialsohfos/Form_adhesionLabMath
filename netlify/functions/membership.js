@@ -1,7 +1,6 @@
 // netlify/functions/membership.js
 const crypto = require('crypto');
-const fs = require('fs').promises;
-const path = require('path');
+const { MongoClient } = require('mongodb');
 
 // Configuration CORS
 const headers = {
@@ -11,71 +10,29 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Utiliser un stockage persistant - plusieurs options :
-// OPTION 1 : Utiliser le dossier /tmp (mais moins fiable)
-// OPTION 2 : Utiliser une variable globale (ne persiste pas entre les re-déploiements)
-// OPTION 3 : Utiliser un service externe (recommandé pour la production)
+// URI MongoDB (à remplacer avec vos identifiants)
+// Créez un compte gratuit sur https://www.mongodb.com/atlas
+const MONGODB_URI = process.env.MONGODB_URI || 'votre_uri_mongodb';
+const DB_NAME = 'labmath';
+const COLLECTION_NAME = 'members';
 
-// Pour cette correction, nous allons utiliser une combinaison de :
-// - Stockage en mémoire (global) pour la session courante
-// - Fichier dans /tmp pour persistance entre les appels de la même instance
-// - Note : En production, envisagez MongoDB Atlas, Firebase ou Airtable
+let cachedClient = null;
+let cachedDb = null;
 
-// Stockage en mémoire globale (persiste tant que l'instance est active)
-let inMemoryDB = [];
-
-// Chemin du fichier de données
-const DATA_FILE_PATH = path.join('/tmp', 'labmath-members.json');
-
-// Fonction pour initialiser la base de données
-async function initDB() {
-    try {
-        // Essayer de lire depuis le fichier
-        const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
-        inMemoryDB = JSON.parse(data);
-        console.log(`Base de données chargée depuis le fichier: ${inMemoryDB.length} membres`);
-    } catch (error) {
-        console.log('Création d\'une nouvelle base de données');
-        // Données initiales de démonstration (optionnel)
-        inMemoryDB = [];
-        await saveToFile();
+async function connectToDatabase() {
+    if (cachedClient && cachedDb) {
+        return { client: cachedClient, db: cachedDb };
     }
-}
 
-// Sauvegarder dans le fichier
-async function saveToFile() {
-    try {
-        await fs.writeFile(DATA_FILE_PATH, JSON.stringify(inMemoryDB, null, 2));
-        console.log('Données sauvegardées dans le fichier');
-    } catch (error) {
-        console.error('Erreur sauvegarde fichier:', error);
-        // Ne pas bloquer l'application si l'écriture échoue
-    }
+    const client = new MongoClient(MONGODB_URI);
+    await client.connect();
+    const db = client.db(DB_NAME);
+    
+    cachedClient = client;
+    cachedDb = db;
+    
+    return { client, db };
 }
-
-// Fonction pour lire les données
-async function readData() {
-    // S'assurer que inMemoryDB est initialisé
-    if (inMemoryDB.length === 0) {
-        try {
-            const data = await fs.readFile(DATA_FILE_PATH, 'utf8');
-            inMemoryDB = JSON.parse(data);
-        } catch (error) {
-            // Pas de fichier ou fichier vide
-            inMemoryDB = [];
-        }
-    }
-    return inMemoryDB;
-}
-
-// Fonction pour écrire les données
-async function writeData(data) {
-    inMemoryDB = data;
-    await saveToFile();
-}
-
-// Initialiser au démarrage
-initDB().catch(console.error);
 
 // Gestionnaire principal
 exports.handler = async (event) => {
@@ -90,7 +47,7 @@ exports.handler = async (event) => {
 
     try {
         const path = event.path.replace('/.netlify/functions/membership', '');
-        console.log('Méthode:', event.httpMethod, 'Path:', path, 'Body:', event.body);
+        console.log('Méthode:', event.httpMethod, 'Path:', path);
         
         // Routes
         if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit/')) {
@@ -115,7 +72,7 @@ exports.handler = async (event) => {
             return await updateMemberStatus(event, id);
         }
 
-        // Route de test pour vérifier que la fonction fonctionne
+        // Route de test
         if (event.httpMethod === 'GET' && (path === '/test' || path === '/test/')) {
             return {
                 statusCode: 200,
@@ -123,8 +80,7 @@ exports.handler = async (event) => {
                 body: JSON.stringify({
                     success: true,
                     message: 'La fonction membership est opérationnelle',
-                    timestamp: new Date().toISOString(),
-                    membersCount: inMemoryDB.length
+                    timestamp: new Date().toISOString()
                 })
             };
         }
@@ -134,8 +90,7 @@ exports.handler = async (event) => {
             headers,
             body: JSON.stringify({ 
                 success: false,
-                error: 'Route non trouvée',
-                path: path 
+                error: 'Route non trouvée'
             })
         };
     } catch (error) {
@@ -186,12 +141,15 @@ async function submitMembership(event) {
             };
         }
 
-        // Lire les données existantes
-        const members = await readData();
+        const { db } = await connectToDatabase();
+        const collection = db.collection(COLLECTION_NAME);
 
         // Vérifier si l'email existe déjà
-        const emailExists = members.some(m => m.email && m.email.toLowerCase() === data.email.toLowerCase());
-        if (emailExists) {
+        const existingMember = await collection.findOne({ 
+            email: data.email.trim().toLowerCase() 
+        });
+        
+        if (existingMember) {
             return {
                 statusCode: 400,
                 headers,
@@ -229,11 +187,8 @@ async function submitMembership(event) {
             statut: 'en_attente'
         };
 
-        // Ajouter le nouveau membre
-        members.push(newMember);
-        
-        // Sauvegarder dans le fichier
-        await writeData(members);
+        // Insérer dans MongoDB
+        await collection.insertOne(newMember);
         console.log('Membre ajouté avec succès:', newMember.email, 'ID:', newMember.id);
 
         return {
@@ -263,40 +218,51 @@ async function submitMembership(event) {
 // Récupérer tous les membres
 async function getAllMembers(event) {
     try {
-        const members = await readData();
+        const { db } = await connectToDatabase();
+        const collection = db.collection(COLLECTION_NAME);
+        
         const params = event.queryStringParameters || {};
         
-        // Filtrer selon le statut si spécifié
-        let filteredMembers = members;
+        // Construire le filtre
+        let filter = {};
         if (params.statut) {
-            filteredMembers = filteredMembers.filter(m => m.statut === params.statut);
+            filter.statut = params.statut;
         }
         
         // Recherche
         if (params.search) {
-            const searchLower = params.search.toLowerCase();
-            filteredMembers = filteredMembers.filter(m => 
-                (m.prenom && m.prenom.toLowerCase().includes(searchLower)) ||
-                (m.nom && m.nom.toLowerCase().includes(searchLower)) ||
-                (m.email && m.email.toLowerCase().includes(searchLower))
-            );
+            const searchRegex = new RegExp(params.search, 'i');
+            filter.$or = [
+                { prenom: searchRegex },
+                { nom: searchRegex },
+                { email: searchRegex }
+            ];
         }
         
         // Pagination
         const page = parseInt(params.page) || 1;
         const limit = parseInt(params.limit) || 50;
-        const start = (page - 1) * limit;
-        const paginatedMembers = filteredMembers.slice(start, start + limit);
+        const skip = (page - 1) * limit;
+        
+        // Exécuter la requête
+        const members = await collection
+            .find(filter)
+            .sort({ date_soumission: -1 })
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+        
+        const total = await collection.countDocuments(filter);
         
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                total: filteredMembers.length,
+                total: total,
                 page: page,
-                pages: Math.ceil(filteredMembers.length / limit),
-                data: paginatedMembers
+                pages: Math.ceil(total / limit),
+                data: members
             })
         };
         
@@ -317,8 +283,10 @@ async function getAllMembers(event) {
 // Récupérer un membre par ID
 async function getMemberById(id) {
     try {
-        const members = await readData();
-        const member = members.find(m => m.id === id);
+        const { db } = await connectToDatabase();
+        const collection = db.collection(COLLECTION_NAME);
+        
+        const member = await collection.findOne({ id: id });
         
         if (!member) {
             return {
@@ -370,10 +338,26 @@ async function updateMemberStatus(event, id) {
             };
         }
         
-        const members = await readData();
-        const index = members.findIndex(m => m.id === id);
+        const { db } = await connectToDatabase();
+        const collection = db.collection(COLLECTION_NAME);
         
-        if (index === -1) {
+        const updateData = {
+            $set: {
+                statut: statut,
+                date_maj: new Date().toISOString()
+            }
+        };
+        
+        if (commentaire) {
+            updateData.$set.commentaire_admin = commentaire;
+        }
+        
+        const result = await collection.updateOne(
+            { id: id },
+            updateData
+        );
+        
+        if (result.matchedCount === 0) {
             return {
                 statusCode: 404,
                 headers,
@@ -383,14 +367,6 @@ async function updateMemberStatus(event, id) {
                 })
             };
         }
-        
-        members[index].statut = statut;
-        members[index].date_maj = new Date().toISOString();
-        if (commentaire) {
-            members[index].commentaire_admin = commentaire;
-        }
-        
-        await writeData(members);
         
         return {
             statusCode: 200,
@@ -421,8 +397,8 @@ async function adminLogin(event) {
         const data = JSON.parse(event.body || '{}');
         const { password } = data;
         
-        // La clé d'accès
-        const ADMIN_KEY = '32015labmath@2026';
+        // La clé d'accès (devrait être dans les variables d'environnement)
+        const ADMIN_KEY = process.env.ADMIN_KEY || '32015labmath@2026';
         
         if (password === ADMIN_KEY) {
             // Générer un token simple
