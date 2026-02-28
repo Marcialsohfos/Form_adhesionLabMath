@@ -6,6 +6,7 @@
     <title>Lab_Math Admin - Gestion des adhésions</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Styles existants - gardez-les identiques */
         :root {
             --primary: #00ffff;
             --secondary: #b829ff;
@@ -38,10 +39,7 @@
         }
 
         .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            text-align: center;
             margin-bottom: 3rem;
         }
 
@@ -251,7 +249,6 @@
             color: var(--accent);
         }
 
-        /* Styles de connexion */
         .login-container {
             max-width: 400px;
             margin: 100px auto;
@@ -260,8 +257,6 @@
             border: 2px solid var(--primary);
             border-radius: 15px;
             text-align: center;
-            position: relative;
-            z-index: 10;
         }
 
         .login-container h2 {
@@ -338,31 +333,6 @@
             display: block;
         }
 
-        .logout-btn {
-            background: var(--error);
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 20px;
-            cursor: pointer;
-            margin-left: 1rem;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .logout-btn:hover {
-            opacity: 0.8;
-            transform: scale(1.05);
-        }
-        
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-
         @media (max-width: 768px) {
             .admin-container {
                 padding: 1rem;
@@ -383,11 +353,6 @@
             .export-btn {
                 margin-left: 0;
             }
-            
-            .admin-header {
-                flex-direction: column;
-                gap: 1rem;
-            }
         }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -396,7 +361,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <!-- Section de connexion - VISIBLE PAR DÉFAUT -->
     <div id="loginSection" class="login-container">
         <h2><span class="gradient-text">Accès Admin</span></h2>
         <p style="margin-bottom: 2rem; color: var(--text-dim);">Entrez votre clé d'accès pour continuer</p>
@@ -413,22 +377,14 @@
         </div>
     </div>
 
-    <!-- Contenu admin - CACHÉ PAR DÉFAUT -->
     <div id="adminContent" style="display: none;">
         <div class="admin-container">
             <div class="admin-header">
-                <div>
-                    <h1><span class="gradient-text">Gestion des adhésions</span></h1>
-                    <p style="color: var(--text-dim);">Administration des demandes d'adhésion à Lab_Math</p>
-                </div>
-                <div>
-                    <button class="filter-btn" onclick="refreshData()">
-                        <i class="fas fa-sync-alt"></i> Rafraîchir
-                    </button>
-                    <button class="logout-btn" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> Déconnexion
-                    </button>
-                </div>
+                <h1><span class="gradient-text">Gestion des adhésions</span></h1>
+                <p style="color: var(--text-dim);">Administration des demandes d'adhésion à Lab_Math</p>
+                <button class="filter-btn" onclick="refreshData()" style="margin-top: 1rem;">
+                    <i class="fas fa-sync-alt"></i> Rafraîchir
+                </button>
             </div>
             
             <div class="admin-members">
@@ -507,25 +463,13 @@
     <script>
         let members = [];
         let currentFilter = 'all';
-        let adminToken = null;
+        let adminToken = localStorage.getItem('adminToken');
         
-        // Vérifier si un token existe dans sessionStorage
-        const savedToken = sessionStorage.getItem('adminToken');
-        if (savedToken) {
-            adminToken = savedToken;
+        // Vérifier si déjà connecté
+        if (adminToken) {
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('adminContent').style.display = 'block';
             loadMembers();
-        }
-        
-        // Fonction de déconnexion
-        function logout() {
-            sessionStorage.removeItem('adminToken');
-            adminToken = null;
-            document.getElementById('loginSection').style.display = 'block';
-            document.getElementById('adminContent').style.display = 'none';
-            document.getElementById('adminPassword').value = '';
-            document.getElementById('loginError').classList.remove('show');
         }
         
         // Fonction de debug
@@ -567,7 +511,7 @@
                 
                 if (result.success) {
                     adminToken = result.token;
-                    sessionStorage.setItem('adminToken', adminToken);
+                    localStorage.setItem('adminToken', adminToken);
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
                     loadMembers();
@@ -599,7 +543,7 @@
                 const response = await fetch('/.netlify/functions/membership/members');
                 const result = await response.json();
                 
-                showDebug(`Réponse reçue: ${response.status}`);
+                showDebug(`Réponse: ${JSON.stringify(result)}`);
                 
                 if (result.success) {
                     members = result.data || [];
