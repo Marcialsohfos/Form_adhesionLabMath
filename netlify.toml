@@ -1,5 +1,5 @@
 [build]
-  command = "echo 'No build required'"
+  command = "npm install && envsubst < netlify/functions/membership.template.js > netlify/functions/membership.js"
   functions = "netlify/functions"
   publish = "."
 
