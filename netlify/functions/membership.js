@@ -12,7 +12,7 @@ const headers = {
 // Clé d'administration
 const ADMIN_KEY = '32015labmath@2026';
 
-// Stockage en mémoire (sera perdu au redémarrage, mais fonctionne pour la démo)
+// Stockage en mémoire
 let membersDB = [];
 
 // Initialiser avec des données de test
@@ -54,15 +54,50 @@ exports.handler = async (event) => {
 
     try {
         const path = event.path.replace('/.netlify/functions/membership', '');
-        console.log('Méthode:', event.httpMethod, 'Path:', path, 'Body:', event.body);
+        console.log('Méthode:', event.httpMethod, 'Path:', path);
 
-        // Routes principales
-        if (event.httpMethod === 'POST' && (path === '/submit' || path === '/submit')) {
+        // Routes publiques (sans authentification)
+        if (event.httpMethod === 'POST' && path === '/submit') {
             return await submitMembership(event);
         }
         
-        if (event.httpMethod === 'GET' && (path === '/members' || path === '/members')) {
-            return await getAllMembers(event);
+        if (event.httpMethod === 'POST' && path === '/login') {
+            return await adminLogin(event);
+        }
+
+        if (event.httpMethod === 'GET' && path === '/test') {
+            return {
+                statusCode: 200,
+                headers,
+                body: JSON.stringify({
+                    success: true,
+                    message: 'La fonction membership est opérationnelle',
+                    timestamp: new Date().toISOString()
+                })
+            };
+        }
+
+        // Routes protégées (nécessitent authentification)
+        // Vérifier le token pour toutes les autres routes
+        const authHeader = event.headers.authorization || event.headers.Authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({
+                    success: false,
+                    error: 'Non autorisé - Token manquant'
+                })
+            };
+        }
+
+        // Ici on pourrait valider le token, mais pour l'instant on accepte tout token
+        // En production, il faudrait valider le token JWT
+
+        // Routes protégées
+        if (event.httpMethod === 'GET' && path === '/members') {
+            return await getAllMembers();
         }
         
         if (event.httpMethod === 'GET' && path.startsWith('/member/')) {
@@ -70,27 +105,9 @@ exports.handler = async (event) => {
             return await getMemberById(id);
         }
         
-        if (event.httpMethod === 'POST' && (path === '/login' || path === '/login')) {
-            return await adminLogin(event);
-        }
-        
         if (event.httpMethod === 'PUT' && path.startsWith('/update/')) {
             const id = path.replace('/update/', '');
             return await updateMemberStatus(event, id);
-        }
-
-        // Route de test
-        if (event.httpMethod === 'GET' && (path === '/test' || path === '/test')) {
-            return {
-                statusCode: 200,
-                headers,
-                body: JSON.stringify({
-                    success: true,
-                    message: 'La fonction membership est opérationnelle',
-                    timestamp: new Date().toISOString(),
-                    membersCount: membersDB.length
-                })
-            };
         }
 
         return {
@@ -115,7 +132,7 @@ exports.handler = async (event) => {
     }
 };
 
-// Soumission du formulaire
+// Soumission du formulaire (publique)
 async function submitMembership(event) {
     try {
         const data = JSON.parse(event.body || '{}');
@@ -216,27 +233,9 @@ async function submitMembership(event) {
     }
 }
 
-// Récupérer tous les membres
-async function getAllMembers(event) {
+// Récupérer tous les membres (protégé)
+async function getAllMembers() {
     try {
-        // Vérifier l'authentification
-        const authHeader = event.headers.authorization || event.headers.Authorization;
-        
-        // Pour le développement, on peut permettre l'accès sans token
-        // Mais en production, décommentez les lignes ci-dessous
-        /*
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return {
-                statusCode: 401,
-                headers,
-                body: JSON.stringify({
-                    success: false,
-                    error: 'Non autorisé'
-                })
-            };
-        }
-        */
-        
         console.log('Membres dans la DB:', membersDB.length);
         
         return {
@@ -262,7 +261,7 @@ async function getAllMembers(event) {
     }
 }
 
-// Récupérer un membre par ID
+// Récupérer un membre par ID (protégé)
 async function getMemberById(id) {
     try {
         const member = membersDB.find(m => m.id === id);
@@ -300,7 +299,7 @@ async function getMemberById(id) {
     }
 }
 
-// Mettre à jour le statut d'un membre
+// Mettre à jour le statut d'un membre (protégé)
 async function updateMemberStatus(event, id) {
     try {
         const data = JSON.parse(event.body || '{}');
@@ -356,7 +355,7 @@ async function updateMemberStatus(event, id) {
     }
 }
 
-// Connexion admin
+// Connexion admin (publique)
 async function adminLogin(event) {
     try {
         const data = JSON.parse(event.body || '{}');
