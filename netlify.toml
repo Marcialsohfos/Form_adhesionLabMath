@@ -7,6 +7,12 @@
   functions = "netlify/functions"
   publish = "."
 
+# Ajouter le plugin d'injection
+[[plugins]]
+package = "netlify-plugin-inline-env"
+  [plugins.inputs]
+  verbose = "true"  # Pour voir ce qui est injecté dans les logs
+
 [[redirects]]
   from = "/"
   to = "/membership.html"
