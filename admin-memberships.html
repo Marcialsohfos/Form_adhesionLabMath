@@ -256,6 +256,8 @@
             border: 2px solid var(--primary);
             border-radius: 15px;
             text-align: center;
+            position: relative;
+            z-index: 1000;
         }
 
         .login-container h2 {
@@ -335,6 +337,22 @@
             display: block;
         }
 
+        /* Overlay pour bloquer l'accès */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark);
+            z-index: 999;
+            display: none;
+        }
+
+        .auth-overlay.show {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .admin-container {
                 padding: 1rem;
@@ -363,10 +381,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Overlay de sécurité -->
+    <div class="auth-overlay" id="authOverlay"></div>
+
     <div id="loginSection" class="login-container">
         <h2><span class="gradient-text">Accès Admin</span></h2>
         <p style="margin-bottom: 2rem; color: var(--text-dim);">Entrez votre clé d'accès pour continuer</p>
-        <input type="password" id="adminPassword" class="login-input" placeholder="Clé d'accès" onkeypress="if(event.key === 'Enter') loginAdmin()">
+        <input type="password" id="adminPassword" class="login-input" placeholder="Clé d'accès" autocomplete="off">
         <button class="login-btn" onclick="loginAdmin()">
             <i class="fas fa-lock-open"></i> Se connecter
         </button>
@@ -387,9 +408,6 @@
                 <div style="display: flex; justify-content: center; gap: 1rem; margin-top: 1rem;">
                     <button class="filter-btn" onclick="refreshData()">
                         <i class="fas fa-sync-alt"></i> Rafraîchir
-                    </button>
-                    <button class="filter-btn" onclick="testApiConnection()">
-                        <i class="fas fa-plug"></i> Tester API
                     </button>
                     <button class="filter-btn" onclick="logoutAdmin()">
                         <i class="fas fa-sign-out-alt"></i> Déconnexion
@@ -447,7 +465,7 @@
                         <tbody id="membersTableBody">
                             <tr>
                                 <td colspan="8" class="loading">
-                                    <i class="fas fa-spinner fa-spin"></i> Veuillez vous connecter...
+                                    <i class="fas fa-spinner fa-spin"></i> Chargement...
                                 </td>
                             </tr>
                         </tbody>
@@ -474,6 +492,7 @@
         let members = [];
         let currentFilter = 'all';
         let adminToken = localStorage.getItem('adminToken');
+        let isAuthenticated = false;
         
         // Fonction de debug améliorée
         function showDebug(message) {
@@ -489,59 +508,48 @@
             }
             if (debugPanel) {
                 debugPanel.classList.add('show');
-                // Auto-hide après 10 secondes
                 setTimeout(() => {
                     debugPanel.classList.remove('show');
                 }, 10000);
             }
         }
 
-        // Fonction pour tester la connexion API
-        async function testApiConnection() {
-            try {
-                showDebug('Test de connexion à l\'API...');
-                const response = await fetch('/.netlify/functions/membership/test');
-                const result = await response.json();
-                showDebug(result);
-                alert('Connexion API: ' + (result.success ? '✅ OK' : '❌ Échec'));
-            } catch (error) {
-                showDebug('Erreur de connexion: ' + error.message);
-                alert('❌ Erreur de connexion à l\'API: ' + error.message);
-            }
-        }
-        
-        // Vérifier si déjà connecté et token valide
+        // Vérifier l'authentification de manière stricte
         async function checkAuth() {
+            // Toujours commencer par cacher le contenu admin et montrer l'écran de login
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminContent').style.display = 'none';
+            
+            // S'il y a un token, essayer de le valider
             if (adminToken) {
-                // Tenter de charger les données pour vérifier si le token est valide
                 try {
+                    showDebug('Vérification du token existant...');
+                    
                     const response = await fetch('/.netlify/functions/membership/members', {
                         headers: {
                             'Authorization': `Bearer ${adminToken}`
                         }
                     });
                     
-                    if (response.status === 401) {
-                        // Token invalide
-                        localStorage.removeItem('adminToken');
-                        adminToken = null;
-                        document.getElementById('loginSection').style.display = 'block';
-                        document.getElementById('adminContent').style.display = 'none';
-                    } else {
+                    if (response.status === 200) {
                         // Token valide
+                        isAuthenticated = true;
                         document.getElementById('loginSection').style.display = 'none';
                         document.getElementById('adminContent').style.display = 'block';
                         loadMembers();
+                    } else {
+                        // Token invalide
+                        localStorage.removeItem('adminToken');
+                        adminToken = null;
+                        isAuthenticated = false;
+                        showDebug('Token invalide, déconnexion');
                     }
                 } catch (error) {
                     console.error('Erreur de vérification auth:', error);
-                    // En cas d'erreur réseau, on laisse l'utilisateur essayer de se connecter
-                    document.getElementById('loginSection').style.display = 'block';
-                    document.getElementById('adminContent').style.display = 'none';
+                    localStorage.removeItem('adminToken');
+                    adminToken = null;
+                    isAuthenticated = false;
                 }
-            } else {
-                document.getElementById('loginSection').style.display = 'block';
-                document.getElementById('adminContent').style.display = 'none';
             }
         }
         
@@ -574,9 +582,15 @@
                 if (result.success) {
                     adminToken = result.token;
                     localStorage.setItem('adminToken', adminToken);
+                    isAuthenticated = true;
+                    
+                    // Cacher l'écran de login et montrer l'admin
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('adminContent').style.display = 'block';
                     document.getElementById('loginError').classList.remove('show');
+                    document.getElementById('adminPassword').value = '';
+                    
+                    // Charger les données
                     loadMembers();
                     return true;
                 } else {
@@ -595,12 +609,14 @@
         
         // Rafraîchir les données
         function refreshData() {
-            loadMembers();
+            if (isAuthenticated) {
+                loadMembers();
+            }
         }
         
         // Charger les données depuis l'API
         async function loadMembers() {
-            if (!adminToken) {
+            if (!isAuthenticated || !adminToken) {
                 logoutAdmin();
                 return;
             }
@@ -742,7 +758,6 @@
             
             let html = '<div style="color: white;">';
             
-            // Générer dynamiquement tous les champs
             const fields = [
                 { icon: 'id-card', label: 'ID', value: member.id },
                 { icon: 'user', label: 'Nom', value: member.prenom + ' ' + member.nom },
@@ -780,7 +795,7 @@
         
         // Mettre à jour le statut
         async function updateStatus(id, newStatus) {
-            if (!adminToken) {
+            if (!isAuthenticated || !adminToken) {
                 logoutAdmin();
                 return;
             }
@@ -853,12 +868,11 @@
                     m.statut || ''
                 ];
                 
-                // Échapper les guillemets et entourer chaque champ de guillemets
                 const escapedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
                 csv += escapedRow + '\n';
             });
             
-            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // \uFEFF pour BOM UTF-8
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -871,7 +885,10 @@
         function logoutAdmin() {
             localStorage.removeItem('adminToken');
             adminToken = null;
+            isAuthenticated = false;
             members = [];
+            
+            // Forcer l'affichage de l'écran de login
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('adminContent').style.display = 'none';
             document.getElementById('adminPassword').value = '';
@@ -882,7 +899,17 @@
             if (tbody) {
                 tbody.innerHTML = '<tr><td colspan="8" class="loading"><i class="fas fa-lock"></i> Veuillez vous connecter</td></tr>';
             }
+            
+            showDebug('Déconnecté');
         }
+        
+        // Empêcher l'accès direct via l'historique
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                // La page a été chargée depuis le cache (bouton retour)
+                checkAuth();
+            }
+        });
         
         // Fermer le modal en cliquant en dehors
         window.onclick = function(event) {
@@ -891,6 +918,13 @@
                 closeModal();
             }
         }
+        
+        // Ajouter un écouteur pour la touche Entrée
+        document.getElementById('adminPassword')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                loginAdmin();
+            }
+        });
     </script>
 </body>
 </html>
