@@ -2,21 +2,8 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
-// IMPORTATION DE LA CONFIGURATION LOCALE
-// Ce fichier sera créé manuellement sur le serveur
-let supabaseConfig;
-try {
-    // Tentative de chargement de la configuration locale
-    supabaseConfig = require('./supabase-config.js');
-    console.log('✓ Configuration Supabase chargée depuis supabase-config.js');
-} catch (error) {
-    console.error('❌ Fichier supabase-config.js non trouvé!');
-    console.error('Créez ce fichier à partir de supabase-config.example.js');
-    supabaseConfig = {
-        supabaseUrl: '',
-        supabaseServiceKey: ''
-    };
-}
+// IMPORTATION DEPUIS LE DOSSIER CONFIG (hors du dossier functions)
+const supabaseConfig = require('../../config/supabase-config.js');
 
 // Configuration CORS
 const headers = {
@@ -26,7 +13,7 @@ const headers = {
     'Content-Type': 'application/json'
 };
 
-// Clé d'administration (gardée dans le code car moins sensible)
+// Clé d'administration
 const ADMIN_KEY = '32015labmath@2026';
 const validTokens = new Set();
 
