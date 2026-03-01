@@ -1,0 +1,4 @@
+# Ne pas commiter les fichiers de configuration sensibles
+netlify/functions/supabase-config.js
+netlify/functions/membership.js
+node_modules
