@@ -7,6 +7,10 @@
   functions = "netlify/functions"
   publish = "."
 
+# Exclure les fichiers de configuration du déploiement des fonctions
+[functions]
+  included_files = ["!netlify/functions/supabase-config.example.js"]
+
 [[redirects]]
   from = "/"
   to = "/membership.html"
